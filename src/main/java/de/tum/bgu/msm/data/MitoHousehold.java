@@ -80,7 +80,11 @@ public class MitoHousehold implements Id, MicroLocation {
     }
 
     public synchronized void setTripsByPurpose(List<MitoTrip> trips, Purpose purpose) {
+        if (tripsByPurpose.containsKey(purpose)) {
+            tripsByPurpose.get(purpose).addAll(trips);
+        } else {
             tripsByPurpose.put(purpose, trips);
+        }
     }
 
     public List<MitoTrip> getTripsForPurpose(Purpose purpose) {

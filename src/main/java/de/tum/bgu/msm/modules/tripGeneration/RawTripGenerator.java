@@ -1,9 +1,6 @@
 package de.tum.bgu.msm.modules.tripGeneration;
 
-import de.tum.bgu.msm.data.DataSet;
-import de.tum.bgu.msm.data.MitoHousehold;
-import de.tum.bgu.msm.data.MitoTrip;
-import de.tum.bgu.msm.data.Purpose;
+import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import org.apache.log4j.Logger;
@@ -45,22 +42,23 @@ public class RawTripGenerator {
     }
 
     private void generateByPurposeMultiThreaded(double scaleFactorForGeneration) {
-        final ConcurrentExecutor<Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>>> executor =
+        final ConcurrentExecutor<Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>>> executor =
                 ConcurrentExecutor.fixedPoolService(Purpose.values().length);
-        List<Callable<Tuple<Purpose, Map<MitoHousehold,List<MitoTrip>>>>> tasks = new ArrayList<>();
+        List<Callable<Tuple<Purpose, Map<MitoPerson,List<MitoTrip>>>>> tasks = new ArrayList<>();
         for(Purpose purpose: PURPOSES) {
             tasks.add(tripsByPurposeGeneratorFactory.createTripGeneratorForThisPurpose(dataSet, purpose, scaleFactorForGeneration));
         }
-        final List<Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>>> results = executor.submitTasksAndWaitForCompletion(tasks);
-        for(Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>> result: results) {
+        final List<Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>>> results = executor.submitTasksAndWaitForCompletion(tasks);
+        for(Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>> result: results) {
             final Purpose purpose = result.getFirst();
 
             final int sum = result.getSecond().values().stream().flatMapToInt(e -> IntStream.of(e.size())).sum();
             logger.info("Created " + sum + " trips for " + purpose);
-            final Map<MitoHousehold, List<MitoTrip>> tripsByHouseholds = result.getSecond();
-            for(Map.Entry<MitoHousehold, List<MitoTrip>> tripsByHousehold: tripsByHouseholds.entrySet()) {
-                tripsByHousehold.getKey().setTripsByPurpose(tripsByHousehold.getValue(), purpose);
-                dataSet.addTrips(tripsByHousehold.getValue());
+            final Map<MitoPerson, List<MitoTrip>> tripsByPersons = result.getSecond();
+            for(Map.Entry<MitoPerson, List<MitoTrip>> tripsByPerson: tripsByPersons.entrySet()) {
+                tripsByPerson.getKey().setTrips(tripsByPerson.getValue());
+                tripsByPerson.getKey().getHousehold().setTripsByPurpose(tripsByPerson.getValue(), purpose);
+                dataSet.addTrips(tripsByPerson.getValue());
             }
         }
     }

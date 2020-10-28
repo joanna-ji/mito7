@@ -5,7 +5,6 @@ import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.util.MitoUtil;
 import org.apache.log4j.Logger;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;

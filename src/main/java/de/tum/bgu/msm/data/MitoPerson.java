@@ -2,9 +2,7 @@ package de.tum.bgu.msm.data;
 
 import org.apache.log4j.Logger;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 
 /**
  * Holds person objects for the Microsimulation Transport Orchestrator (MITO)
@@ -23,7 +21,9 @@ public class MitoPerson implements Id {
     private final int age;
     private final boolean driversLicense;
 
-    private Set<MitoTrip> trips = new LinkedHashSet<>();
+    private  MitoHousehold household;
+
+    private List<MitoTrip> trips;
 
     public MitoPerson(int id, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense) {
         this.id = id;
@@ -40,6 +40,14 @@ public class MitoPerson implements Id {
 
     public MitoOccupationStatus getMitoOccupationStatus() {
         return mitoOccupationStatus;
+    }
+
+    public MitoHousehold getHousehold() {
+        return household;
+    }
+
+    public void setHousehold(MitoHousehold household) {
+        this.household = household;
     }
 
     @Override
@@ -59,16 +67,15 @@ public class MitoPerson implements Id {
         return driversLicense;
     }
 
-    public Set<MitoTrip> getTrips() {
-        return Collections.unmodifiableSet(this.trips);
+    public List<MitoTrip> getTrips() {
+        return trips;
     }
 
-    public void addTrip(MitoTrip trip) {
-        this.trips.add(trip);
-        if(trip.getPerson() != this) {
-            trip.setPerson(this);
-        }
+    public void setTrips(List<MitoTrip> trips) {
+        this.trips = trips;
     }
+
+    public void addTrip(MitoTrip trip) { trips.add(trip); }
 
     @Override
     public int hashCode() {

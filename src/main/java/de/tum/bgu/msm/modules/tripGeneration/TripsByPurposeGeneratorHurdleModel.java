@@ -16,13 +16,12 @@ import static de.tum.bgu.msm.modules.tripGeneration.RawTripGenerator.TRIP_ID_COU
 public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFunction<Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>>> implements TripsByPurposeGenerator {
 
     private static final Logger logger = Logger.getLogger(TripsByPurposeGeneratorHurdleModel.class);
-    private Map<MitoHousehold, List<MitoTrip>> tripsByHH = new HashMap<>();
+    private Map<MitoPerson, List<MitoTrip>> tripsByPP = new HashMap<>();
 
     private final DataSet dataSet;
     private final Purpose purpose;
 
     private double scaleFactorForGeneration;
-    private HouseholdTypeManager householdTypeManager;
 
     private Map<String, Double> binLogCoef;
     private Map<String, Double> negBinCoef;
@@ -35,7 +34,6 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
         this.dataSet = dataSet;
         this.purpose = purpose;
         this.scaleFactorForGeneration = scaleFactorForGeneration;
-        this.householdTypeManager = new HouseholdTypeManager(purpose);
         this.binLogCoef =
                 new TripGenerationHurdleCoefficientReader(dataSet, purpose,
                         Resources.instance.getTripGenerationCoefficientsHurdleBinaryLogit()).readCoefficientsForThisPurpose();
@@ -46,32 +44,33 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
     }
 
     @Override
-    public Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>> call() throws Exception {
+    public Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>> call() throws Exception {
         logger.info("  Generating trips with purpose " + purpose + " (multi-threaded)");
         logger.info("Created trip frequency distributions for " + purpose);
         logger.info("Started assignment of trips for hh, purpose: " + purpose);
-        final Iterator<MitoHousehold> iterator = dataSet.getHouseholds().values().iterator();
+        final Iterator<MitoPerson> iterator = dataSet.getPersons().values().iterator();
         for (; iterator.hasNext(); ) {
-            MitoHousehold next = iterator.next();
+            MitoPerson next = iterator.next();
             if (MitoUtil.getRandomObject().nextDouble() < scaleFactorForGeneration) {
-                generateTripsForHousehold(next);
+                generateTripsForPerson(next);
             }
         }
         logger.warn("Cases with more than ten trips per household - might be a problem if too frequent: " + casesWithMoreThanTen +
                 " for purpose " + purpose);
-        return new Tuple<>(purpose, tripsByHH);
+        return new Tuple<>(purpose, tripsByPP);
     }
 
-    private void generateTripsForHousehold(MitoHousehold hh) {
-        double utilityTravel = getUtilityTravelBinaryLogit(hh);
+    private void generateTripsForPerson(MitoPerson pp) {
+        double utilityTravel = getUtilityTravelBinaryLogit(pp);
         double randomNumber = random.nextDouble();
         double probabilityTravel = Math.exp(utilityTravel) / (1. + Math.exp(utilityTravel));
         if (randomNumber < probabilityTravel) {
-            estimateAndCreatePositiveNumberOfTrips(hh);
+            estimateAndCreatePositiveNumberOfTrips(pp);
         }
     }
 
-    private double getUtilityTravelBinaryLogit(MitoHousehold hh) {
+    private double getUtilityTravelBinaryLogit(MitoPerson pp) {
+        MitoHousehold hh = pp.getHousehold();
         double utilityTravel = 0.;
         int size = Math.min(hh.getHhSize(),5);
         switch (size) {
@@ -164,7 +163,8 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
         return utilityTravel;
     }
 
-    private void estimateAndCreatePositiveNumberOfTrips(MitoHousehold hh) {
+    private void estimateAndCreatePositiveNumberOfTrips(MitoPerson pp) {
+        MitoHousehold hh = pp.getHousehold();
         double randomNumber = random.nextDouble();
         double averageNumberOfTrips = 0.;
         int size = hh.getHhSize();
@@ -277,34 +277,20 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
             casesWithMoreThanTen++;
         }
         int numberOfTrips = i;
-        generateTripsForHousehold(hh, numberOfTrips);
-
+        generateTripsForPerson(pp, numberOfTrips);
     }
 
-    private void generateTripsForHousehold(MitoHousehold hh, int numberOfTrips) {
-        HouseholdType hhType = householdTypeManager.determineHouseholdType(hh);
-        if (hhType == null) {
-            logger.error("Could not create trips for Household " + hh.getId() + " for Purpose " + purpose + ": No Household Type applicable");
-            return;
-        }
-        Integer[] tripFrequencies = householdTypeManager.getTripFrequenciesForHouseholdType(hhType);
-        if (tripFrequencies == null) {
-            logger.error("Could not find trip frequencies for this hhType/Purpose: " + hhType.getId() + "/" + purpose);
-            return;
-        }
-        if (MitoUtil.getSum(tripFrequencies) == 0) {
-            logger.info("No trips for this hhType/Purpose: " + hhType.getId() + "/" + purpose);
-            return;
-        }
+    private void generateTripsForPerson(MitoPerson pp, int numberOfTrips) {
 
         List<MitoTrip> trips = new ArrayList<>();
         for (int i = 0; i < numberOfTrips; i++) {
             MitoTrip trip = new MitoTrip(TRIP_ID_COUNTER.incrementAndGet(), purpose);
+            trip.setPerson(pp);
             if (trip != null) {
                 trips.add(trip);
             }
         }
-        tripsByHH.put(hh, trips);
+        tripsByPP.put(pp, trips);
     }
 
 

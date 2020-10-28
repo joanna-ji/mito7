@@ -6,8 +6,8 @@ import de.tum.bgu.msm.util.MitoUtil;
 
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by matthewokrah on 12/03/2018.
@@ -258,7 +258,7 @@ public class SummarizeDataToVisualize {
             for (Purpose purpose : Purpose.values()) {
                 trips.put(purpose, 0);
             }
-            Set<MitoTrip> personTrips = person.getTrips();
+            List<MitoTrip> personTrips = person.getTrips();
             for (MitoTrip trip : personTrips) {
                 Purpose purpose = trip.getTripPurpose();
                 int existingTripCount = trips.get(purpose);

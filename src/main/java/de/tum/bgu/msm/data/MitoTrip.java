@@ -61,9 +61,6 @@ public class MitoTrip implements Id {
 
     public void setPerson(MitoPerson person) {
         this.person = person;
-        if (!person.getTrips().contains(this)) {
-            person.addTrip(this);
-        }
     }
 
     public Mode getTripMode() {
