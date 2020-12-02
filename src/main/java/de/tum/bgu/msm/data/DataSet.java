@@ -6,6 +6,7 @@ import com.google.common.collect.Table;
 import de.tum.bgu.msm.data.travelDistances.TravelDistances;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoiceCalibrationData;
+import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix2D;
 import org.matsim.api.core.v01.population.Population;
 
 import java.util.*;
@@ -39,6 +40,8 @@ public class DataSet {
     private EnumMap<Purpose, DoubleMatrix1D> durationMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> departureMinuteCumProbByPurpose;
 
+    private EnumMap<Purpose, IndexedDoubleMatrix2D> mandatoryUtilityMatrices = new EnumMap<>(Purpose.class);
+
     private Population population;
     private final ModeChoiceCalibrationData modeChoiceCalibrationData = new ModeChoiceCalibrationData();
 
@@ -56,6 +59,31 @@ public class DataSet {
 
     public TravelTimes setTravelTimes(TravelTimes travelTimes) {
         return this.travelTimes = travelTimes;
+    }
+
+    public void setEconomicStatuses() {
+        for (MitoHousehold hh: this.getHouseholds().values()) {
+            int countAdults = (int) hh.getPersons().values().stream().filter(person ->
+                    person.getAge() > 16).count();
+            int countChildren = (int) hh.getPersons().values().stream().filter(person ->
+                    person.getAge() <= 16).count();
+
+            double weightedHhSize = countAdults + 0.5 * countChildren;
+            double income = hh.getMonthlyIncome_EUR();
+
+            int economicStatus = 0;
+            if (income / weightedHhSize <= 800) {economicStatus = 1; }
+            else if (income / weightedHhSize <= 1600) {economicStatus = 2; }
+            else if (income / weightedHhSize <= 2400) {economicStatus = 3; }
+            else if (income / weightedHhSize > 2400) {economicStatus = 4; }
+            hh.setEconomicStatus(economicStatus);
+        }
+    }
+
+    public void setRandomCycleOwnership() {
+        for (MitoPerson pp: this.getPersons().values()) {
+
+        }
     }
 
     public Map<Integer, MitoPerson> getPersons() {
@@ -240,6 +268,14 @@ public class DataSet {
 
     public ModeChoiceCalibrationData getModeChoiceCalibrationData() {
         return modeChoiceCalibrationData;
+    }
+
+    public void setMandatoryUtilityMatrices(EnumMap<Purpose, IndexedDoubleMatrix2D> utilityMatrices) {
+        this.mandatoryUtilityMatrices = utilityMatrices;
+    }
+
+    public EnumMap<Purpose, IndexedDoubleMatrix2D> getMandatoryUtilityMatrices() {
+        return mandatoryUtilityMatrices;
     }
 
 

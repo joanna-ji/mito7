@@ -5,18 +5,26 @@ import de.tum.bgu.msm.io.output.SummarizeData;
 import de.tum.bgu.msm.io.output.SummarizeDataToVisualize;
 import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
+import de.tum.bgu.msm.modules.modeChoice.DominantCommuteMode;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
 import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
 import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
 import de.tum.bgu.msm.modules.scaling.TripScaling;
 import de.tum.bgu.msm.modules.timeOfDay.TimeOfDayChoice;
-import de.tum.bgu.msm.modules.travelTimeBudget.TravelTimeBudgetModule;
+import de.tum.bgu.msm.modules.travelTimeBudget.DiscretionaryTravelTimeBudgetModule;
+import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
 import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
-import de.tum.bgu.msm.modules.tripGeneration.TripGeneration;
+import de.tum.bgu.msm.modules.tripGeneration.DiscretionaryTripGeneration;
+import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactoryHurdle;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import org.apache.log4j.Logger;
+
+import java.util.EnumSet;
+
+import static de.tum.bgu.msm.data.Purpose.*;
+import static de.tum.bgu.msm.data.Purpose.NHBO;
 
 /**
  * Generates travel demand for the Microscopic Transport Orchestrator (MITO)
@@ -29,9 +37,13 @@ public final class TravelDemandGenerator2017 {
     private static final Logger logger = Logger.getLogger(TravelDemandGenerator2017.class);
     private final DataSet dataSet;
 
-    private final Module tripGeneration;
-    private final Module travelTimeBudget;
-    private final Module distribution;
+    private final Module mandatoryTripGeneration;
+    private final Module mandatoryTravelTimeBudget;
+    private final Module mandatoryDistribution;
+    private final Module dominantCommuteMode;
+    private final Module discretionaryTripGeneration;
+    private final Module discretionaryTravelTimeBudget;
+    private final Module discretionaryTripDistribution;
     private final Module modeChoice;
     private final Module timeOfDayChoice;
     private final Module tripScaling;
@@ -40,9 +52,13 @@ public final class TravelDemandGenerator2017 {
 
     private TravelDemandGenerator2017(
             DataSet dataSet,
-            Module tripGeneration,
-            Module travelTimeBudget,
-            Module distribution,
+            Module mandatoryTripGeneration,
+            Module mandatoryTravelTimeBudget,
+            Module mandatoryDistribution,
+            Module dominantCommuteMode,
+            Module discretionaryTripGeneration,
+            Module discretionaryTravelTimeBudget,
+            Module discretionaryTripDistribution,
             Module modeChoice,
             Module timeOfDayChoice,
             Module tripScaling,
@@ -50,9 +66,13 @@ public final class TravelDemandGenerator2017 {
             Module longDistanceTraffic) {
 
         this.dataSet = dataSet;
-        this.tripGeneration = tripGeneration;
-        this.travelTimeBudget = travelTimeBudget;
-        this.distribution = distribution;
+        this.mandatoryTripGeneration = mandatoryTripGeneration;
+        this.mandatoryTravelTimeBudget = mandatoryTravelTimeBudget;
+        this.mandatoryDistribution = mandatoryDistribution;
+        this.dominantCommuteMode = dominantCommuteMode;
+        this.discretionaryTripGeneration = discretionaryTripGeneration;
+        this.discretionaryTravelTimeBudget = discretionaryTravelTimeBudget;
+        this.discretionaryTripDistribution = discretionaryTripDistribution;
         this.modeChoice = modeChoice;
         this.timeOfDayChoice = timeOfDayChoice;
         this.tripScaling = tripScaling;
@@ -65,10 +85,13 @@ public final class TravelDemandGenerator2017 {
 
         private final DataSet dataSet;
 
-        private Module tripGeneration;
-        private Module personTripAssignment;
-        private Module travelTimeBudget;
-        private Module distribution;
+        private Module mandatoryTripGeneration;
+        private Module mandatoryTravelTimeBudget;
+        private Module mandatoryDistribution;
+        private Module dominantCommuteMode;
+        private Module discretionaryTripGeneration;
+        private Module discretionaryTravelTimeBudget;
+        private Module discretionaryTripDistribution;
         private Module modeChoice;
         private Module timeOfDayChoice;
         private Module tripScaling;
@@ -77,9 +100,13 @@ public final class TravelDemandGenerator2017 {
 
         public Builder(DataSet dataSet) {
             this.dataSet = dataSet;
-            tripGeneration = new TripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
-            travelTimeBudget = new TravelTimeBudgetModule(dataSet);
-            distribution = new TripDistribution(dataSet);
+            mandatoryTripGeneration = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
+            mandatoryTravelTimeBudget = new MandatoryTravelTimeBudgetModule(dataSet);
+            mandatoryDistribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE));
+            dominantCommuteMode = new DominantCommuteMode(dataSet);
+            discretionaryTripGeneration = new DiscretionaryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
+            discretionaryTravelTimeBudget = new DiscretionaryTravelTimeBudgetModule(dataSet);
+            discretionaryTripDistribution = new TripDistribution(dataSet, EnumSet.of(HBS, HBR, HBO, RRT, NHBW, NHBO));
             modeChoice = new ModeChoice(dataSet);
             timeOfDayChoice = new TimeOfDayChoice(dataSet);
             tripScaling = new TripScaling(dataSet);
@@ -91,9 +118,13 @@ public final class TravelDemandGenerator2017 {
 
         public TravelDemandGenerator2017 build() {
             return new TravelDemandGenerator2017(dataSet,
-                    tripGeneration,
-                    travelTimeBudget,
-                    distribution,
+                    mandatoryTripGeneration,
+                    mandatoryTravelTimeBudget,
+                    mandatoryDistribution,
+                    dominantCommuteMode,
+                    discretionaryTripGeneration,
+                    discretionaryTravelTimeBudget,
+                    discretionaryTripDistribution,
                     modeChoice,
                     timeOfDayChoice,
                     tripScaling,
@@ -101,16 +132,32 @@ public final class TravelDemandGenerator2017 {
                     longDistanceTraffic);
         }
 
-        public void setTripGeneration(Module tripGeneration) {
-            this.tripGeneration = tripGeneration;
+        public void setMandatoryTripGeneration(Module mandatoryTripGeneration) {
+            this.mandatoryTripGeneration = mandatoryTripGeneration;
         }
 
-        public void setTravelTimeBudget(Module travelTimeBudget) {
-            this.travelTimeBudget = travelTimeBudget;
+        public void setTravelTimeBudget(Module mandatoryTravelTimeBudget) {
+            this.mandatoryTravelTimeBudget = mandatoryTravelTimeBudget;
         }
 
-        public void setDistribution(Module distribution) {
-            this.distribution = distribution;
+        public void setMandatoryDistribution(Module mandatoryDistribution) {
+            this.mandatoryDistribution = mandatoryDistribution;
+        }
+
+        public void setDominantCommuteMode(Module mandatoryDistribution) {
+            this.dominantCommuteMode = dominantCommuteMode;
+        }
+
+        public void setDiscretionaryTripGeneration(Module discretionaryTripGeneration) {
+            this.discretionaryTripGeneration = discretionaryTripGeneration;
+        }
+
+        public void setDiscretionaryTravelTimeBudget(Module discretionaryTravelTimeBudget) {
+            this.discretionaryTravelTimeBudget = discretionaryTravelTimeBudget;
+        }
+
+        public void setDiscretionaryTripDistribution(Module discretionaryTripDistribution) {
+            this.discretionaryTripDistribution = discretionaryTripDistribution;
         }
 
         public void setModeChoice(Module modeChoice) {
@@ -137,16 +184,16 @@ public final class TravelDemandGenerator2017 {
             return dataSet;
         }
 
-        public Module getTripGeneration() {
-            return tripGeneration;
+        public Module getMandatoryTripGeneration() {
+            return mandatoryTripGeneration;
         }
 
-        public Module getTravelTimeBudget() {
-            return travelTimeBudget;
+        public Module getMandatoryTravelTimeBudget() {
+            return mandatoryTravelTimeBudget;
         }
 
-        public Module getDistribution() {
-            return distribution;
+        public Module getMandatoryDistribution() {
+            return mandatoryDistribution;
         }
 
         public Module getModeChoice() {
@@ -173,8 +220,8 @@ public final class TravelDemandGenerator2017 {
     public void generateTravelDemand(String scenarioName) {
 
         long startTime = System.currentTimeMillis();
-        logger.info("Running Module: Microscopic Trip Generation");
-        tripGeneration.run();
+        logger.info("Running Module: Mandatory Microscopic Trip Generation");
+        mandatoryTripGeneration.run();
         if (dataSet.getTrips().isEmpty()) {
             logger.warn("No trips created. End of program.");
             return;
@@ -183,13 +230,27 @@ public final class TravelDemandGenerator2017 {
         double duration = (endTime - startTime) / 1000;
         logger.info("Completed TG in " + duration + " seconds");
 
+        logger.info("Running Module: Mandatory Travel Time Budget");
+        mandatoryTravelTimeBudget.run();
+
+        logger.info("Running Module: Mandatory trip distribution");
+        mandatoryDistribution.run();
+
+        logger.info("Running Module: Dominant commute mode");
+        dominantCommuteMode.run();
+
+        logger.info("Running Module: Discretionary trip generation");
+        discretionaryTripGeneration.run();
+
+        logger.info("Running Module: Discretionary Travel Time Budget");
+        discretionaryTravelTimeBudget.run();
+
+        logger.info("Running Module: Discretionary trip distribution");
+        discretionaryTripDistribution.run();
+
+        SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
+        SummarizeData.writeOutTrips(dataSet, scenarioName);
         System.exit(0);
-
-        logger.info("Running Module: Travel Time Budget Calculation");
-        travelTimeBudget.run();
-
-        logger.info("Running Module: Microscopic Trip Distribution");
-        distribution.run();
 
         logger.info("Running Module: Trip to Mode Assignment (Mode Choice)");
         modeChoice.run();

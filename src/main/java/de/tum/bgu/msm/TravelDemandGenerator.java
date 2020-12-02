@@ -1,7 +1,9 @@
 package de.tum.bgu.msm;
 
 import de.tum.bgu.msm.data.DataSet;
-import de.tum.bgu.msm.io.output.*;
+import de.tum.bgu.msm.io.output.SummarizeData;
+import de.tum.bgu.msm.io.output.SummarizeDataToVisualize;
+import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
 import de.tum.bgu.msm.modules.personTripAssignment.PersonTripAssignment;
@@ -9,13 +11,18 @@ import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
 import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
 import de.tum.bgu.msm.modules.scaling.TripScaling;
 import de.tum.bgu.msm.modules.timeOfDay.TimeOfDayChoice;
-import de.tum.bgu.msm.modules.travelTimeBudget.TravelTimeBudgetModule;
+import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
 import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
-import de.tum.bgu.msm.modules.tripGeneration.TripGeneration;
+import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactorySampleEnumeration;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import org.apache.log4j.Logger;
+
+import java.util.EnumSet;
+
+import static de.tum.bgu.msm.data.Purpose.*;
+import static de.tum.bgu.msm.data.Purpose.NHBO;
 
 /**
  * Generates travel demand for the Microscopic Transport Orchestrator (MITO)
@@ -80,10 +87,10 @@ public final class TravelDemandGenerator {
 
         public Builder(DataSet dataSet) {
             this.dataSet = dataSet;
-            tripGeneration = new TripGeneration(dataSet, new TripsByPurposeGeneratorFactorySampleEnumeration());
+            tripGeneration = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactorySampleEnumeration());
             personTripAssignment = new PersonTripAssignment(dataSet);
-            travelTimeBudget = new TravelTimeBudgetModule(dataSet);
-            distribution = new TripDistribution(dataSet);
+            travelTimeBudget = new MandatoryTravelTimeBudgetModule(dataSet);
+            distribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE,HBS,HBO,NHBW,NHBO));
             modeChoice = new ModeChoice(dataSet);
             timeOfDayChoice = new TimeOfDayChoice(dataSet);
             tripScaling = new TripScaling(dataSet);

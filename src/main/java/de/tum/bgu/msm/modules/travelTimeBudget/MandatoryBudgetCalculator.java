@@ -14,7 +14,7 @@ import java.util.Collection;
 
 public class MandatoryBudgetCalculator implements Runnable {
 
-    private static final Logger logger = Logger.getLogger(TravelTimeBudgetModule.class);
+    private static final Logger logger = Logger.getLogger(MandatoryTravelTimeBudgetModule.class);
 
     private final double defaultBudget;
     private final Collection<MitoHousehold> households;
@@ -27,7 +27,7 @@ public class MandatoryBudgetCalculator implements Runnable {
     MandatoryBudgetCalculator(Collection<MitoHousehold> households, Purpose purpose, TravelTimes travelTimes, double timeOfDay) {
         this.households = households;
         this.purpose = purpose;
-        this.defaultBudget = Resources.instance.getDouble(Properties.DEFAULT_BUDGET + purpose, 30.);
+        this.defaultBudget = Resources.instance.getDouble(Properties.DEFAULT_BUDGET + purpose, 30.) * 5;
         this.travelTimes = travelTimes;
         this.timeOfDay = timeOfDay;
         if(purpose == Purpose.HBW) {

@@ -1,20 +1,18 @@
 package de.tum.bgu.msm.io.input.readers;
 
-import de.tum.bgu.msm.data.DataSet;
-import de.tum.bgu.msm.data.Purpose;
+import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.io.input.AbstractCsvReader;
-import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TripGenerationHurdleCoefficientReader extends AbstractCsvReader {
+public class CoefficientReader extends AbstractCsvReader {
 
 
     private final Map<String, Double> coefficients = new HashMap<>();
-    private final String purpose;
+    private final String id;
 
     private int variableIndex;
     private int coefficientIndex;
@@ -22,16 +20,24 @@ public class TripGenerationHurdleCoefficientReader extends AbstractCsvReader {
     private final Path path;
 
 
-    public TripGenerationHurdleCoefficientReader(DataSet dataSet, Purpose purpose, Path path) {
+    public CoefficientReader(DataSet dataSet, Id id, Path path) {
         super(dataSet);
-        this.purpose = purpose.toString();
+        this.id = id.toString();
         this.path = path;
+        read();
+    }
+
+    public CoefficientReader(DataSet dataSet, String id, Path path) {
+        super(dataSet);
+        this.id = id;
+        this.path = path;
+        read();
     }
 
     @Override
     protected void processHeader(String[] header) {
         variableIndex = MitoUtil.findPositionInArray("variable", header);
-        coefficientIndex = MitoUtil.findPositionInArray(purpose, header);
+        coefficientIndex = MitoUtil.findPositionInArray(id, header);
     }
 
     @Override
@@ -48,7 +54,7 @@ public class TripGenerationHurdleCoefficientReader extends AbstractCsvReader {
         super.read(path, ",");
     }
 
-    public Map<String, Double> readCoefficientsForThisPurpose(){
+    public Map<String, Double> readCoefficients(){
         read();
         return coefficients;
     };

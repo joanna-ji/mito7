@@ -22,11 +22,11 @@ public class PersonTripAssignmentTest {
         dataSet = new DataSet();
 
         MitoHousehold household = new MitoHousehold(1, 1, 1);
-        household.addPerson(new MitoPerson(1, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 35, MitoGender.MALE, true));
-        household.addPerson(new MitoPerson(2, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 30, MitoGender.FEMALE, true));
-        household.addPerson(new MitoPerson(3, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false));
-        household.addPerson(new MitoPerson(4, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 15, MitoGender.MALE, false));
-        household.addPerson(new MitoPerson(5, MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.FEMALE, false));
+        household.addPerson(new MitoPerson(1,household, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 35, MitoGender.MALE, true, true));
+        household.addPerson(new MitoPerson(2,household, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 30, MitoGender.FEMALE, true,true));
+        household.addPerson(new MitoPerson(3,household, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false,true));
+        household.addPerson(new MitoPerson(4,household, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 15, MitoGender.MALE, false,true));
+        household.addPerson(new MitoPerson(5,household, MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.FEMALE, false,true));
         dataSet.addHousehold(household);
 
         MitoTrip tripHBW = new MitoTrip(1, Purpose.HBW);

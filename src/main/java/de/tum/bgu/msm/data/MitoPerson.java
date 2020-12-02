@@ -1,8 +1,7 @@
 package de.tum.bgu.msm.data;
 
-import org.apache.log4j.Logger;
-
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Holds person objects for the Microsimulation Transport Orchestrator (MITO)
@@ -12,26 +11,30 @@ import java.util.List;
  */
 public class MitoPerson implements Id {
 
-    private static final Logger logger = Logger.getLogger(MitoPerson.class);
-
     private final int id;
+    private final MitoHousehold household;
     private final MitoGender mitoGender;
     private final MitoOccupationStatus mitoOccupationStatus;
     private final MitoOccupation occupation;
     private final int age;
     private final boolean driversLicense;
+    private final boolean bicycle;
 
-    private  MitoHousehold household;
+    private final EnumMap<Purpose, List<MitoTrip>> tripsByPurpose = new EnumMap<>(Purpose.class);
+    private final EnumMap<Purpose, Double> travelTimeBudgetByPurpose= new EnumMap<>(Purpose.class);
+    private double totalTravelTimeBudget = 0.;
 
-    private List<MitoTrip> trips;
+    private Mode dominantCommuteMode;
 
-    public MitoPerson(int id, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense) {
+    public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense, boolean ownBicycle) {
         this.id = id;
+        this.household = hh;
         this.mitoOccupationStatus = mitoOccupationStatus;
         this.occupation = occupation;
         this.age = age;
         this.mitoGender = mitoGender;
         this.driversLicense = driversLicense;
+        this.bicycle = ownBicycle;
     }
 
     public MitoOccupation getOccupation() {
@@ -44,10 +47,6 @@ public class MitoPerson implements Id {
 
     public MitoHousehold getHousehold() {
         return household;
-    }
-
-    public void setHousehold(MitoHousehold household) {
-        this.household = household;
     }
 
     @Override
@@ -67,15 +66,57 @@ public class MitoPerson implements Id {
         return driversLicense;
     }
 
+    public boolean hasBicycle() { return bicycle; }
+
+    public synchronized void setTripsByPurpose(List<MitoTrip> trips, Purpose purpose) {
+        tripsByPurpose.put(purpose, trips);
+    }
+
+    public void setDominantCommuteMode(Mode mode) {
+        this.dominantCommuteMode = mode;
+    }
+
+    public Mode getDominantCommuteMode() { return dominantCommuteMode; }
+
+    public List<MitoTrip> getTripsForPurpose(Purpose purpose) {
+        if(tripsByPurpose.get(purpose) != null) {
+            return tripsByPurpose.get(purpose);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     public List<MitoTrip> getTrips() {
-        return trips;
+        return tripsByPurpose.values().stream().flatMap(List::stream).collect(Collectors.toList());
     }
 
-    public void setTrips(List<MitoTrip> trips) {
-        this.trips = trips;
+    public void addTrip(MitoTrip trip) {
+        Purpose purpose = trip.getTripPurpose();
+        if(tripsByPurpose.get(purpose) != null) {
+            tripsByPurpose.get(purpose).add(trip);
+        }
+        else {
+            tripsByPurpose.put(purpose,new ArrayList<>(Arrays.asList(trip)));
+        }
     }
 
-    public void addTrip(MitoTrip trip) { trips.add(trip); }
+    public synchronized void setTravelTimeBudgetByPurpose(String purpose, double budget) {
+        if(purpose.equals("Total")) {
+            this.totalTravelTimeBudget = budget;
+        } else {
+            this.travelTimeBudgetByPurpose.put(Purpose.valueOf(purpose), budget);
+        }
+    }
+
+    public double getTotalTravelTimeBudget() {
+        return totalTravelTimeBudget;
+    }
+
+    public double getTravelTimeBudgetForPurpose(Purpose purpose) {
+        return travelTimeBudgetByPurpose.get(purpose) == null ? 0. : travelTimeBudgetByPurpose.get(purpose) ;
+    }
+
+
 
     @Override
     public int hashCode() {

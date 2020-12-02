@@ -7,8 +7,6 @@ import de.tum.bgu.msm.data.MitoZone;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
-import de.tum.bgu.msm.resources.Properties;
-import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix1D;
@@ -26,7 +24,7 @@ import java.util.stream.IntStream;
  */
 public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static double VARIANCE_DOUBLED = 30 * 2;
+    private final static double VARIANCE_DOUBLED = 30 * 2; // put very large number here to !
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
     private final static Logger logger = Logger.getLogger(HbsHboDistribution.class);
@@ -67,6 +65,16 @@ public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
     public static HbsHboDistribution hbo(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
                                          TravelTimes travelTimes, double peakHour) {
         return new HbsHboDistribution(Purpose.HBO, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
+    }
+
+    public static HbsHboDistribution hbr(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                         TravelTimes travelTimes, double peakHour) {
+        return new HbsHboDistribution(Purpose.HBR, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
+    }
+
+    public static HbsHboDistribution rrt(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                         TravelTimes travelTimes, double peakHour) {
+        return new HbsHboDistribution(Purpose.RRT, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
     }
 
     @Override

@@ -25,6 +25,7 @@ public class MitoHousehold implements Id, MicroLocation {
 
     private final EnumMap<Purpose, List<MitoTrip>> tripsByPurpose = new EnumMap<>(Purpose.class);
     private final EnumMap<Purpose, Double> travelTimeBudgetByPurpose= new EnumMap<>(Purpose.class);
+    private double totalTravelTimeBudget = 0.;
 
     private final Map<Integer, MitoPerson> persons  = new HashMap<>();
 
@@ -83,7 +84,7 @@ public class MitoHousehold implements Id, MicroLocation {
         if (tripsByPurpose.containsKey(purpose)) {
             tripsByPurpose.get(purpose).addAll(trips);
         } else {
-            tripsByPurpose.put(purpose, trips);
+            tripsByPurpose.put(purpose, new ArrayList<>(trips));
         }
     }
 
@@ -97,6 +98,18 @@ public class MitoHousehold implements Id, MicroLocation {
 
     public synchronized void setTravelTimeBudgetByPurpose(Purpose purpose, double budget) {
         this.travelTimeBudgetByPurpose.put(purpose, budget);
+    }
+
+    public synchronized void setTravelTimeBudgetByPurpose(String purpose, double budget) {
+        if(purpose.equals("Total")) {
+            this.totalTravelTimeBudget = budget;
+        } else {
+            this.travelTimeBudgetByPurpose.put(Purpose.valueOf(purpose), budget);
+        }
+    }
+
+    public double getTotalTravelTimeBudget() {
+        return totalTravelTimeBudget;
     }
 
     public double getTravelTimeBudgetForPurpose(Purpose purpose) {

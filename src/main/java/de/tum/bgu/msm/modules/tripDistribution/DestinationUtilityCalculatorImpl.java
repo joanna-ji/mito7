@@ -43,6 +43,14 @@ public class DestinationUtilityCalculatorImpl implements DestinationUtilityCalcu
                 distanceParam = TRAVEL_DISTANCE_PARAM_HBO;
                 impedanceParam = IMPEDANCE_PARAM_HBO;
                 break;
+            case HBR:
+                distanceParam = TRAVEL_DISTANCE_PARAM_HBO;
+                impedanceParam = IMPEDANCE_PARAM_HBO;
+                break;
+            case RRT:
+                distanceParam = TRAVEL_DISTANCE_PARAM_HBO;
+                impedanceParam = IMPEDANCE_PARAM_HBO;
+                break;
             case NHBW:
                 distanceParam = travelDistanceParamNhbw;
                 impedanceParam = impedanceParamNhbw;
@@ -62,7 +70,7 @@ public class DestinationUtilityCalculatorImpl implements DestinationUtilityCalcu
         if(attraction == 0) {
             return 0.;
         }
-        double impedance = impedanceParam * Math.exp(distanceParam * travelDistance);
-        return Math.exp(impedance) * attraction;
+        double impedance = impedanceParam * Math.exp(distanceParam * travelDistance); // Beta = impedance param = importance of impedance
+        return Math.exp(impedance) * attraction;                                      // distance param = decay of impedance
     }
 }

@@ -1,7 +1,7 @@
 package de.tum.bgu.msm.modules.tripGeneration;
 
 import de.tum.bgu.msm.data.*;
-import de.tum.bgu.msm.io.input.readers.TripGenerationHurdleCoefficientReader;
+import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
@@ -13,7 +13,7 @@ import java.util.*;
 
 import static de.tum.bgu.msm.modules.tripGeneration.RawTripGenerator.TRIP_ID_COUNTER;
 
-public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFunction<Tuple<Purpose, Map<MitoHousehold, List<MitoTrip>>>> implements TripsByPurposeGenerator {
+public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFunction<Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>>> implements TripsByPurposeGenerator {
 
     private static final Logger logger = Logger.getLogger(TripsByPurposeGeneratorHurdleModel.class);
     private Map<MitoPerson, List<MitoTrip>> tripsByPP = new HashMap<>();
@@ -23,261 +23,266 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
 
     private double scaleFactorForGeneration;
 
-    private Map<String, Double> binLogCoef;
-    private Map<String, Double> negBinCoef;
-
-    private int casesWithMoreThanTen = 0;
-
+    private final Map<String, Double> zeroCoef;
+    private final Map<String, Double> countCoef;
 
     protected TripsByPurposeGeneratorHurdleModel(DataSet dataSet, Purpose purpose, double scaleFactorForGeneration) {
         super(MitoUtil.getRandomObject().nextLong());
         this.dataSet = dataSet;
         this.purpose = purpose;
         this.scaleFactorForGeneration = scaleFactorForGeneration;
-        this.binLogCoef =
-                new TripGenerationHurdleCoefficientReader(dataSet, purpose,
-                        Resources.instance.getTripGenerationCoefficientsHurdleBinaryLogit()).readCoefficientsForThisPurpose();
-        this.negBinCoef =
-                new TripGenerationHurdleCoefficientReader(dataSet, purpose,
-                        Resources.instance.getTripGenerationCoefficientsHurdleNegativeBinomial()).readCoefficientsForThisPurpose();
-
+        this.zeroCoef =
+                new CoefficientReader(dataSet, purpose,
+                        Resources.instance.getTripGenerationCoefficientsHurdleBinaryLogit()).readCoefficients();
+        if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
+            this.countCoef =
+                    new CoefficientReader(dataSet, purpose,
+                            Resources.instance.getTripGenerationCoefficientsHurdleOrderedLogit()).readCoefficients();
+        } else {
+            this.countCoef =
+                    new CoefficientReader(dataSet, purpose,
+                            Resources.instance.getTripGenerationCoefficientsHurdleNegativeBinomial()).readCoefficients();
+        }
     }
 
     @Override
     public Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>> call() throws Exception {
-        logger.info("  Generating trips with purpose " + purpose + " (multi-threaded)");
-        logger.info("Created trip frequency distributions for " + purpose);
-        logger.info("Started assignment of trips for hh, purpose: " + purpose);
-        final Iterator<MitoPerson> iterator = dataSet.getPersons().values().iterator();
-        for (; iterator.hasNext(); ) {
-            MitoPerson next = iterator.next();
+        logger.info("  Generating trips for purpose " + purpose + " (multi-threaded)");
+
+        for (MitoPerson person : dataSet.getPersons().values()) {
             if (MitoUtil.getRandomObject().nextDouble() < scaleFactorForGeneration) {
-                generateTripsForPerson(next);
+                if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
+                    generateTripsForPerson(person, polrEstimateTrips(person));
+                } else {
+                    generateTripsForPerson(person, hurdleEstimateTrips(person));
+                }
             }
         }
-        logger.warn("Cases with more than ten trips per household - might be a problem if too frequent: " + casesWithMoreThanTen +
-                " for purpose " + purpose);
         return new Tuple<>(purpose, tripsByPP);
     }
 
-    private void generateTripsForPerson(MitoPerson pp) {
-        double utilityTravel = getUtilityTravelBinaryLogit(pp);
+    private int polrEstimateTrips (MitoPerson pp) {
         double randomNumber = random.nextDouble();
-        double probabilityTravel = Math.exp(utilityTravel) / (1. + Math.exp(utilityTravel));
-        if (randomNumber < probabilityTravel) {
-            estimateAndCreatePositiveNumberOfTrips(pp);
-        }
-    }
+        double binaryResponse = getResponse(pp, zeroCoef);
+        double phi = Math.exp(binaryResponse) / (1 + Math.exp(binaryResponse));
+        double mu = getResponse(pp, countCoef);
 
-    private double getUtilityTravelBinaryLogit(MitoPerson pp) {
-        MitoHousehold hh = pp.getHousehold();
-        double utilityTravel = 0.;
-        int size = Math.min(hh.getHhSize(),5);
-        switch (size) {
-            case 1:
-                utilityTravel += binLogCoef.get("size_1");
-                break;
-            case 2:
-                utilityTravel += binLogCoef.get("size_2");
-                break;
-            case 3:
-                utilityTravel += binLogCoef.get("size_3");
-                break;
-            case 4:
-                utilityTravel += binLogCoef.get("size_4");
-                break;
-            case 5:
-                utilityTravel += binLogCoef.get("size_5");
-                break;
-        }
-        for (MitoPerson p : hh.getPersons().values()) {
-            if (p.getAge() < 6) {
-                utilityTravel += binLogCoef.get("pers_under6");
-            } else if (p.getAge() < 18) {
-                utilityTravel += binLogCoef.get("pers_6to17");
-            } else if (p.getAge() < 30) {
-                if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.WORKER)) {
-                    utilityTravel += binLogCoef.get("pers_18to29_w");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.STUDENT)) {
-                    utilityTravel += binLogCoef.get("pers_18to29_s");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.UNEMPLOYED)) {
-                    utilityTravel += binLogCoef.get("pers_18to29_u");
-                }
-            } else if (p.getAge() < 65) {
-                if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.WORKER)) {
-                    utilityTravel += binLogCoef.get("pers_30to64_w");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.STUDENT)) {
-                    utilityTravel += binLogCoef.get("pers_30to64_s");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.UNEMPLOYED)) {
-                    utilityTravel += binLogCoef.get("pers_30to64_u");
-                }
-            } else {
-                utilityTravel += binLogCoef.get("pers_65up");
-            }
-            if (p.getMitoGender().equals(MitoGender.FEMALE)) {
-                utilityTravel += binLogCoef.get("pers_female");
-            }
-        }
-        //we do not have pers_mobility_restriction available?
+        double[] intercepts = new double[6];
+        intercepts[0] = countCoef.get("1|2");
+        intercepts[1] = countCoef.get("2|3");
+        intercepts[2] = countCoef.get("3|4");
+        intercepts[3] = countCoef.get("4|5");
+        intercepts[4] = countCoef.get("5|6");
+        intercepts[5] = countCoef.get("6|7");
 
-        int economicStatus = hh.getEconomicStatus();
-        switch (economicStatus) {
-            case 1:
-                utilityTravel += 0.;
-                break;
-            case 2:
-                utilityTravel += binLogCoef.get("economicStatus_2");
-                break;
-            case 3:
-                utilityTravel += binLogCoef.get("economicStatus_3");
-                break;
-            case 4:
-                utilityTravel += binLogCoef.get("economicStatus_4");
-                break;
-            case 5:
-                utilityTravel += binLogCoef.get("economicStatus_5");
-                break;
-        }
+        int i = 0;
+        double cumProb = 0;
+        double prob = 1 - phi;
+        cumProb += prob;
 
-        double proportionOfAutos = Math.min(1, hh.getAutos() / hh.getPersons().values().stream().filter(mitoPerson -> mitoPerson.getAge() >= 15).count());
-        utilityTravel += binLogCoef.get("propAutos") * proportionOfAutos;
-
-        AreaTypes.SGType type = hh.getHomeZone().getAreaTypeSG();
-
-        //is this right area type?
-        switch (type) {
-            case CORE_CITY:
-                utilityTravel += 0.;
-                break;
-            case MEDIUM_SIZED_CITY:
-                utilityTravel += binLogCoef.get("BBSR_2");
-                break;
-            case TOWN:
-                utilityTravel += binLogCoef.get("BBSR_3");
-                break;
-            case RURAL:
-                utilityTravel += binLogCoef.get("BBSR_4");
-                break;
-        }
-
-        return utilityTravel;
-    }
-
-    private void estimateAndCreatePositiveNumberOfTrips(MitoPerson pp) {
-        MitoHousehold hh = pp.getHousehold();
-        double randomNumber = random.nextDouble();
-        double averageNumberOfTrips = 0.;
-        int size = hh.getHhSize();
-        switch (size) {
-            case 1:
-                averageNumberOfTrips += negBinCoef.get("size_1");
-                break;
-            case 2:
-                averageNumberOfTrips += negBinCoef.get("size_2");
-                break;
-            case 3:
-                averageNumberOfTrips += negBinCoef.get("size_3");
-                break;
-            case 4:
-                averageNumberOfTrips += negBinCoef.get("size_4");
-                break;
-            case 5:
-                averageNumberOfTrips += negBinCoef.get("size_5");
-                break;
-        }
-        for (MitoPerson p : hh.getPersons().values()) {
-            if (p.getAge() < 6) {
-                averageNumberOfTrips += negBinCoef.get("pers_under6");
-            } else if (p.getAge() < 18) {
-                averageNumberOfTrips += negBinCoef.get("pers_6to17");
-            } else if (p.getAge() < 30) {
-                if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.WORKER)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_18to29_w");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.STUDENT)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_18to29_s");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.UNEMPLOYED)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_18to29_u");
-                }
-            } else if (p.getAge() < 65) {
-                if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.WORKER)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_30to64_w");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.STUDENT)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_30to64_s");
-                } else if (p.getMitoOccupationStatus().equals(MitoOccupationStatus.UNEMPLOYED)) {
-                    averageNumberOfTrips += negBinCoef.get("pers_30to64_u");
-                }
-            } else {
-                averageNumberOfTrips += negBinCoef.get("pers_65up");
-            }
-            if (p.getMitoGender().equals(MitoGender.FEMALE)) {
-                averageNumberOfTrips += negBinCoef.get("pers_female");
-            }
-        }
-        //we do not have pers_mobility_restriction available?
-
-        int economicStatus = hh.getEconomicStatus();
-        switch (economicStatus) {
-            case 1:
-                averageNumberOfTrips += 0.;
-                break;
-            case 2:
-                averageNumberOfTrips += negBinCoef.get("economicStatus_2");
-                break;
-            case 3:
-                averageNumberOfTrips += negBinCoef.get("economicStatus_3");
-                break;
-            case 4:
-                averageNumberOfTrips += negBinCoef.get("economicStatus_4");
-                break;
-            case 5:
-                averageNumberOfTrips += negBinCoef.get("economicStatus_5");
-                break;
-        }
-
-        //check this
-        double proportionOfAutos = Math.min(1, hh.getAutos() / hh.getPersons().values().stream().filter(mitoPerson -> mitoPerson.getAge() >= 15).count());
-        averageNumberOfTrips += negBinCoef.get("propAutos") * proportionOfAutos;
-
-        AreaTypes.SGType type = hh.getHomeZone().getAreaTypeSG();
-
-        //is this right area type?
-        switch (type) {
-            case CORE_CITY:
-                averageNumberOfTrips += 0.;
-                break;
-            case MEDIUM_SIZED_CITY:
-                averageNumberOfTrips += negBinCoef.get("BBSR_2");
-                break;
-            case TOWN:
-                averageNumberOfTrips += negBinCoef.get("BBSR_3");
-                break;
-            case RURAL:
-                averageNumberOfTrips += negBinCoef.get("BBSR_4");
-                break;
-        }
-
-        //is this the right value?
-        double theta = negBinCoef.get("theta");
-
-        averageNumberOfTrips = Math.exp(averageNumberOfTrips);
-
-        double variance = averageNumberOfTrips + 1 / theta * Math.pow(averageNumberOfTrips, 2);
-        double p = (variance - averageNumberOfTrips) / variance;
-
-        NegativeBinomialDist nb = new NegativeBinomialDist(theta, 1 - p);
-        double pOfAtLeastZero = nb.cdf(0); //to cut by y = 1
-        int i = 1;
-        while (i < 10) {
-            if (randomNumber < (nb.cdf(i) - pOfAtLeastZero) / (1 - pOfAtLeastZero)) {
-                break;
-            }
+        while(randomNumber > cumProb) {
             i++;
+            if(i < 7) {
+                prob = Math.exp(intercepts[i-1] - mu) / (1 + Math.exp(intercepts[i-1] - mu));
+            } else {
+                prob = 1;
+            }
+            if(i > 1) {
+                prob -= Math.exp(intercepts[i-2] - mu) / (1 + Math.exp(intercepts[i-2] - mu));
+            }
+            cumProb += phi * prob;
         }
-        if (averageNumberOfTrips >= 10) {
-            casesWithMoreThanTen++;
+        return i;
+    }
+
+    private int hurdleEstimateTrips(MitoPerson pp) {
+        double randomNumber = random.nextDouble();
+        double binaryResponse = getResponse(pp, zeroCoef);
+        double phi = Math.exp(binaryResponse) / (1 + Math.exp(binaryResponse));
+        double mu = Math.exp(getResponse(pp, countCoef));
+        double theta = countCoef.get("theta");
+
+        NegativeBinomialDist nb = new NegativeBinomialDist(theta, theta / (theta + mu));
+
+        double p0_zero = Math.log(phi);
+        double p0_count = Math.log(1 - nb.cdf(0));
+        double logphi = p0_zero - p0_count;
+
+        int i = 0;
+        double cumProb = 0;
+        double prob = 1 - Math.exp(p0_zero);
+        cumProb += prob;
+
+        while(randomNumber > cumProb) {
+            i++;
+            prob = Math.exp(logphi + Math.log(nb.prob(i)));
+            cumProb += prob;
         }
-        int numberOfTrips = i;
-        generateTripsForPerson(pp, numberOfTrips);
+        return(i);
+    }
+
+    private double getResponse(MitoPerson pp, Map<String, Double> coefficients) {
+        MitoHousehold hh = pp.getHousehold();
+        double response = 0.;
+
+        // Intercept
+        response += coefficients.get("(Intercept)");
+
+        // Household size
+        int householdSize = hh.getHhSize();
+        if(householdSize == 1) {
+            response += coefficients.get("hh.size_1");
+        }
+        else if(householdSize == 2) {
+            response += coefficients.get("hh.size_2");
+        }
+        else if(householdSize == 3) {
+            response += coefficients.get("hh.size_3");
+        }
+        else if(householdSize == 4) {
+            response += coefficients.get("hh.size_4");
+        }
+        else  {
+            assert(householdSize >= 5);
+            response += coefficients.get("hh.size_5");
+        }
+
+        // Number of children in household
+        int householdChildren = DataSet.getChildrenForHousehold(hh);
+        if(householdChildren == 1) {
+            response += coefficients.get("hh.children_1");
+        }
+        else if (householdChildren == 2) {
+            response += coefficients.get("hh.children_2");
+        }
+        else if (householdChildren >= 3) {
+            response += coefficients.get("hh.children_3");
+        }
+
+        // Household in urban region
+        if(!(hh.getHomeZone().getAreaTypeR().equals(AreaTypes.RType.RURAL))) {
+            response += coefficients.get("hh.urban");
+        }
+
+        // Household autos
+        int householdAutos = hh.getAutos();
+        if(householdAutos == 1) {
+            response += coefficients.get("hh.cars_1");
+        }
+        else if(householdAutos == 2) {
+            response += coefficients.get("hh.cars_2");
+        }
+        else if(householdAutos >= 3) {
+            response += coefficients.get("hh.cars_3");
+        }
+
+        // Autos per adult
+        int householdAdults = householdSize - householdChildren;
+        double autosPerAdult = Math.min((double) hh.getAutos() / (double) householdAdults , 1.0);
+        response += autosPerAdult * coefficients.get("hh.autosPerAdult");
+
+        // Age
+        int age = pp.getAge();
+        if (age <= 18) {
+            response += coefficients.get("p.age_gr_1");
+        }
+        else if (age <= 29) {
+            response += coefficients.get("p.age_gr_2");
+        }
+        else if (age <= 49) {
+            response += coefficients.get("p.age_gr_3");
+        }
+        else if (age <= 59) {
+            response += coefficients.get("p.age_gr_4");
+        }
+        else if (age <= 69) {
+            response += coefficients.get("p.age_gr_5");
+        }
+        else {
+            response += coefficients.get("p.age_gr_6");
+        }
+
+        // Female
+        if (pp.getMitoGender().equals(MitoGender.FEMALE)) {
+            response += coefficients.get("p.female");
+        }
+
+        // Has drivers Licence
+        if (pp.hasDriversLicense()) {
+            response += coefficients.get("p.driversLicense");
+        }
+
+        // Has bicycle
+        if (pp.hasBicycle()) {
+            response += coefficients.get("p.ownBicycle");
+        }
+
+        // Mito occupation Status
+        MitoOccupationStatus occupationStatus = pp.getMitoOccupationStatus();
+        if (occupationStatus.equals(MitoOccupationStatus.STUDENT)) {
+            response += coefficients.get("p.occupationStatus_Student");
+        } else if (occupationStatus.equals(MitoOccupationStatus.UNEMPLOYED)) {
+            response += coefficients.get("p.occupationStatus_Unemployed");
+        }
+
+        // Number of work trips
+        int workTrips = pp.getTripsForPurpose(Purpose.HBW).size();
+        if (workTrips == 1) {
+            response += coefficients.get("p.workTrips_1");
+        } else if (workTrips == 2) {
+            response += coefficients.get("p.workTrips_2");
+        } else if (workTrips == 3) {
+            response += coefficients.get("p.workTrips_3");
+        } else if (workTrips == 4) {
+            response += coefficients.get("p.workTrips_4");
+        } else if (workTrips >= 5) {
+            response += coefficients.get("p.workTrips_5");
+        }
+
+        // Number of education trips
+        int eduTrips = pp.getTripsForPurpose(Purpose.HBE).size();
+        if (eduTrips == 1) {
+            response += coefficients.get("p.eduTrips_1");
+        } else if (eduTrips == 2) {
+            response += coefficients.get("p.eduTrips_2");
+        } else if (eduTrips == 3) {
+            response += coefficients.get("p.eduTrips_3");
+        } else if (eduTrips == 4) {
+            response += coefficients.get("p.eduTrips_4");
+        } else if (eduTrips >= 5) {
+            response += coefficients.get("p.eduTrips_5");
+        }
+
+        // Usual commute mode
+        Mode dominantCommuteMode = pp.getDominantCommuteMode();
+        if(dominantCommuteMode != null) {
+            if (dominantCommuteMode.equals(Mode.autoDriver)) {
+                response += coefficients.get("p.usualCommuteMode_carD");
+            } else if (dominantCommuteMode.equals(Mode.autoPassenger)) {
+                response += coefficients.get("p.usualCommuteMode_carP");
+            } else if (dominantCommuteMode.equals(Mode.publicTransport)) {
+                response += coefficients.get("p.usualCommuteMode_PT");
+            } else if (dominantCommuteMode.equals(Mode.bicycle)) {
+                response += coefficients.get("p.usualCommuteMode_cycle");
+            } else if (dominantCommuteMode.equals(Mode.walk)) {
+                response += coefficients.get("p.usualCommuteMode_walk");
+            }
+        }
+
+        // Commute distance
+        if(pp.getOccupation() != null) {
+            int homeZoneId = pp.getHousehold().getZoneId();
+            int occupationZoneId = pp.getOccupation().getZoneId();
+            double commuteDistance = dataSet.getTravelDistancesNMT().getTravelDistance(homeZoneId,occupationZoneId);
+            if(commuteDistance == 0) {
+                logger.info("Commute distance from zone " + homeZoneId + " to zone " + occupationZoneId + "is Zero");
+                commuteDistance = 0.25;
+            }
+            response += Math.log(commuteDistance) * coefficients.get("p.m_mode_km_T");
+        }
+
+
+        return response;
     }
 
     private void generateTripsForPerson(MitoPerson pp, int numberOfTrips) {
@@ -292,6 +297,4 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
         }
         tripsByPP.put(pp, trips);
     }
-
-
 }

@@ -13,22 +13,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-/**
- * Runs calculation of travel time budget for the Microsimulation Transport Orchestrator (MITO)
- *
- * @author Rolf Moeckel
- * Created on Apr 2, 2017 in Mannheim, Germany
- */
-public class TravelTimeBudgetModule extends Module {
+import static de.tum.bgu.msm.data.Purpose.*;
 
-    private static final Logger logger = Logger.getLogger(TravelTimeBudgetModule.class);
+public class DiscretionaryTravelTimeBudgetModule extends Module {
 
-    private EnumSet<Purpose> discretionaryPurposes = EnumSet.of(Purpose.HBS, Purpose.HBO, Purpose.NHBW, Purpose.NHBO);
-    private final TravelTimeBudgetCalculatorImpl travelTimeCalc;
+    private static final Logger logger = Logger.getLogger(DiscretionaryTravelTimeBudgetModule.class);
 
-    public TravelTimeBudgetModule(DataSet dataSet) {
+    private EnumSet<Purpose> discretionaryPurposes = EnumSet.of(HBS, HBR, HBO, RRT, NHBW, NHBO);
+
+    public DiscretionaryTravelTimeBudgetModule(DataSet dataSet) {
         super(dataSet);
-        travelTimeCalc = new TravelTimeBudgetCalculatorImpl();
     }
 
     @Override
@@ -41,11 +35,10 @@ public class TravelTimeBudgetModule extends Module {
         logger.info("Started microscopic travel time budget calculation.");
         final ExecutorService service = Executors.newFixedThreadPool(Purpose.values().length);
         List<Future<?>> results = new ArrayList<>();
+        results.add(service.submit(new DiscretionaryBudgetCalculator("Total", dataSet)));
         for (Purpose purpose : discretionaryPurposes) {
-            results.add(service.submit(new DiscretionaryBudgetCalculator(purpose, dataSet.getHouseholds().values())));
+            results.add(service.submit(new DiscretionaryBudgetCalculator(purpose.toString(), dataSet)));
         }
-        results.add(service.submit(new MandatoryBudgetCalculator(dataSet.getHouseholds().values(), Purpose.HBW, dataSet.getTravelTimes(), dataSet.getPeakHour())));
-        results.add(service.submit((new MandatoryBudgetCalculator(dataSet.getHouseholds().values(), Purpose.HBE, dataSet.getTravelTimes(), dataSet.getPeakHour()))));
         service.shutdown();
         results.forEach(r -> {
             try {
@@ -67,7 +60,7 @@ public class TravelTimeBudgetModule extends Module {
 
         for (MitoHousehold household : dataSet.getHouseholds().values()) {
             try {
-                double totalTravelTimeBudget = travelTimeCalc.calculateBudget(household, "Total");
+                double totalTravelTimeBudget = household.getTotalTravelTimeBudget();
                 double discretionaryTTB = totalTravelTimeBudget - household.getTravelTimeBudgetForPurpose(Purpose.HBW) -
                         household.getTravelTimeBudgetForPurpose(Purpose.HBE);
                 discretionaryTTB = Math.max(discretionaryTTB, 0);
@@ -84,7 +77,7 @@ public class TravelTimeBudgetModule extends Module {
                     }
                 }
             } catch (NullPointerException e) {
-                System.out.println("upps");
+                System.out.println("oops");
             }
         }
     }

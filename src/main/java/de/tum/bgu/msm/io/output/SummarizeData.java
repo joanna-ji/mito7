@@ -30,7 +30,8 @@ public class SummarizeData {
         LOGGER.info("  Writing household file");
         Path filehh = Resources.instance.getOutputHouseholdPath();
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(filehh.toAbsolutePath().toString(), false);
-        pwh.println("id,zone,homeX,homeY,hhSize,autos,trips,workTrips");
+        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban," +
+                "TTB,TTB_HBW,TTB_HBE,TTB_HBS,TTB_HBR,TTB_HBO,TTB_RRT,TTB_NHBW,TTB_NHBO");
         for (MitoHousehold hh : dataSet.getHouseholds().values()) {
             final MitoZone homeZone = hh.getHomeZone();
             if(homeZone == null) {
@@ -47,34 +48,95 @@ public class SummarizeData {
             pwh.print(",");
             pwh.print(hh.getHhSize());
             pwh.print(",");
+            pwh.print(DataSet.getChildrenForHousehold(hh));
+            pwh.print(",");
             pwh.print(hh.getAutos());
             pwh.print(",");
-            int totalNumber = 0;
-            for(Purpose purpose: Purpose.values()) {
-                totalNumber += hh.getTripsForPurpose(purpose).size();
-            }
-            pwh.print(totalNumber);
+            pwh.print(Math.min((double) hh.getAutos() / (hh.getHhSize() - dataSet.getChildrenForHousehold(hh)) , 1.0));
             pwh.print(",");
-            pwh.println(hh.getTripsForPurpose(Purpose.HBW).size());
+            pwh.print(hh.getHomeZone().getAreaTypeR().equals(AreaTypes.RType.RURAL) ? 0:1 );
+            pwh.print(",");
+            pwh.print(hh.getTotalTravelTimeBudget());
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.HBW));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.HBE));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.HBS));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.HBR));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.HBO));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.RRT));
+            pwh.print(",");
+            pwh.print(hh.getTravelTimeBudgetForPurpose(Purpose.NHBW));
+            pwh.print(",");
+            pwh.println(hh.getTravelTimeBudgetForPurpose(Purpose.NHBO));
         }
         pwh.close();
 
         LOGGER.info("  Writing person file");
         Path filepp = Resources.instance.getOutputPersonsPath();
         PrintWriter pwp = MitoUtil.openFileForSequentialWriting(filepp.toAbsolutePath().toString(), false);
-        pwp.println("id,hhID,hhSize,hhTrips,avTrips");
+        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle,dominantCommuteMode," +
+                "trips,trips_HBW,trips_HBE,trips_HBS,trips_HBR,trips_HBO,trips_RRT,trips_NHBW,trips_NHBO,trips_AIRPORT," +
+                "TTB,TTB_HBW,TTB_HBE,TTB_HBS,TTB_HBR,TTB_HBO,TTB_RRT,TTB_NHBW,TTB_NHBO");
         for(MitoHousehold hh: dataSet.getHouseholds().values()) {
             for (MitoPerson pp : hh.getPersons().values()) {
                     pwp.print(pp.getId());
                     pwp.print(",");
                     pwp.print(hh.getId());
                     pwp.print(",");
-                    pwp.print(hh.getHhSize());
+                    pwp.print(pp.getAge());
                     pwp.print(",");
-                    long hhTrips = Arrays.stream(Purpose.values()).mapToLong(purpose -> hh.getTripsForPurpose(purpose).size()).sum();
-                    pwp.print(hhTrips);
+                    pwp.print(pp.getMitoGender().equals(MitoGender.FEMALE) ? 1 : 0);
                     pwp.print(",");
-                    pwp.println(hhTrips / hh.getHhSize());
+                    pwp.print(pp.getMitoOccupationStatus());
+                    pwp.print(",");
+                    pwp.print(pp.hasDriversLicense());
+                    pwp.print(",");
+                    pwp.print(pp.hasBicycle());
+                    pwp.print(",");
+                    pwp.print(pp.getDominantCommuteMode());
+                    pwp.print(",");
+                    pwp.print(pp.getTrips().size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.HBW).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.HBE).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.HBS).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.HBR).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.HBO).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.RRT).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.NHBW).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.NHBO).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTripsForPurpose(Purpose.AIRPORT).size());
+                    pwp.print(",");
+                    pwp.print(pp.getTotalTravelTimeBudget());
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.HBW));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.HBE));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.HBS));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.HBR));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.HBO));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.RRT));
+                    pwp.print(",");
+                    pwp.print(pp.getTravelTimeBudgetForPurpose(Purpose.NHBW));
+                    pwp.print(",");
+                    pwp.println(pp.getTravelTimeBudgetForPurpose(Purpose.NHBO));
                 }
             }
         pwp.close();
@@ -86,9 +148,11 @@ public class SummarizeData {
         LOGGER.info("  Writing trips file");
         String file = Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + dataSet.getYear() + "/microData/trips.csv";
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(file, false);
-        pwh.println("id,origin,originX,originY,destination,destinationX,destinationY,purpose,person,distance,time_auto,time_bus,time_train,time_tram_metro,mode,departure_time,departure_time_return");
+        pwh.println("t.id,p.ID,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,time_auto,time_bus,time_train,time_tram_metro,mode,departure_time,departure_time_return");
         for (MitoTrip trip : dataSet.getTrips().values()) {
             pwh.print(trip.getId());
+            pwh.print(",");
+            pwh.print(trip.getPerson().getId());
             pwh.print(",");
             Location origin = trip.getTripOrigin();
             String originId = "null";
@@ -148,8 +212,6 @@ public class SummarizeData {
             }
 
             pwh.print(trip.getTripPurpose());
-            pwh.print(",");
-            pwh.print(trip.getPerson().getId());
             pwh.print(",");
             if(origin != null && destination != null) {
                 double distance = dataSet.getTravelDistancesAuto().getTravelDistance(origin.getZoneId(), destination.getZoneId());

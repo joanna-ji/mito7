@@ -7,14 +7,19 @@ import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import org.apache.log4j.Logger;
 
+import java.util.EnumSet;
+
 public class TripBalancer {
 
     private static final Logger logger = Logger.getLogger(TripBalancer.class);
 
     private final DataSet dataSet;
 
-    public TripBalancer(DataSet dataSet) {
+    private final EnumSet<Purpose> PURPOSES;
+
+    public TripBalancer(DataSet dataSet, EnumSet<Purpose> purposes) {
         this.dataSet = dataSet;
+        this.PURPOSES = purposes;
     }
 
     public void run() {
@@ -25,7 +30,7 @@ public class TripBalancer {
 
         logger.info("  Balancing trip production and attractions");
 
-        for (Purpose purpose : Purpose.values()) {
+        for (Purpose purpose : PURPOSES) {
             long tripsByPurp = dataSet.getHouseholds().values().stream().mapToInt(household -> household.getTripsForPurpose(purpose).size()).sum();
             double attrSum = dataSet.getZones().values().stream().mapToDouble(zone -> zone.getTripAttraction(purpose)).sum();
             if (tripsByPurp == 0) {

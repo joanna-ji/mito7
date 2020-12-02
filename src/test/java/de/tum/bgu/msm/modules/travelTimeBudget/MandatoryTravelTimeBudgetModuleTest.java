@@ -14,7 +14,7 @@ import static de.tum.bgu.msm.data.Purpose.HBE;
 import static de.tum.bgu.msm.data.Purpose.HBW;
 import static org.junit.Assert.assertEquals;
 
-public class TravelTimeBudgetModuleTest {
+public class MandatoryTravelTimeBudgetModuleTest {
 
     private DataSet dataSet;
     private MitoZone dummyZone = DummyZone.dummy;
@@ -57,7 +57,7 @@ public class TravelTimeBudgetModuleTest {
         addHouseholds();
         addPersons();
 
-        TravelTimeBudgetModule travelTimeBudget = new TravelTimeBudgetModule(dataSet);
+        MandatoryTravelTimeBudgetModule travelTimeBudget = new MandatoryTravelTimeBudgetModule(dataSet);
         travelTimeBudget.run();
     }
 
@@ -150,24 +150,24 @@ public class TravelTimeBudgetModuleTest {
 
     private void addPersons() {
 
-        MitoPerson retiree21 = new MitoPerson(21, MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.MALE, false);
-        MitoPerson retiree22 = new MitoPerson(22, MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.FEMALE, false);
+        MitoPerson retiree21 = new MitoPerson(21,dataSet.getHouseholds().get(2), MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.MALE, false, true);
+        MitoPerson retiree22 = new MitoPerson(22,dataSet.getHouseholds().get(2), MitoOccupationStatus.UNEMPLOYED, null, 70, MitoGender.FEMALE, false, true);
         dataSet.getHouseholds().get(2).addPerson(retiree21);
         dataSet.getHouseholds().get(2).addPerson(retiree22);
 
-        MitoPerson worker31 = new MitoPerson(31, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.MALE, true);
+        MitoPerson worker31 = new MitoPerson(31,dataSet.getHouseholds().get(3), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.MALE, true, true);
         MitoTrip trip31 = new MitoTrip(31, HBW);
         worker31.addTrip(trip31);
-        MitoPerson worker32 = new MitoPerson(32, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.FEMALE, true);
+        MitoPerson worker32 = new MitoPerson(32,dataSet.getHouseholds().get(3), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.FEMALE, true, true);
         MitoTrip trip32 = new MitoTrip(32, HBW);
         worker32.addTrip(trip32);
-        MitoPerson worker33 = new MitoPerson(33, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 20, MitoGender.MALE, false);
+        MitoPerson worker33 = new MitoPerson(33,dataSet.getHouseholds().get(3), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 20, MitoGender.MALE, false, true);
         MitoTrip trip33 = new MitoTrip(33, HBW);
         worker33.addTrip(trip33);
-        MitoPerson child34 = new MitoPerson(34, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false);
+        MitoPerson child34 = new MitoPerson(34,dataSet.getHouseholds().get(3), MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false, true);
         MitoTrip trip34 = new MitoTrip(34, HBE);
         child34.addTrip(trip34);
-        MitoPerson child35 = new MitoPerson(35, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false);
+        MitoPerson child35 = new MitoPerson(35,dataSet.getHouseholds().get(3), MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false, true);
         MitoTrip trip35 = new MitoTrip(35, HBE);
         child35.addTrip(trip35);
 
@@ -177,19 +177,19 @@ public class TravelTimeBudgetModuleTest {
         dataSet.getHouseholds().get(3).addPerson(child34);
         dataSet.getHouseholds().get(3).addPerson(child35);
 
-        MitoPerson worker41 = new MitoPerson(41, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.MALE, true);
+        MitoPerson worker41 = new MitoPerson(41,dataSet.getHouseholds().get(4), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.MALE, true, true);
         MitoTrip trip41 = new MitoTrip(1, HBW);
         worker41.addTrip(trip41);
-        MitoPerson worker42 = new MitoPerson(42, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.FEMALE, true);
+        MitoPerson worker42 = new MitoPerson(42,dataSet.getHouseholds().get(4), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 45, MitoGender.FEMALE, true, true);
         MitoTrip trip42 = new MitoTrip(2, HBW);
         worker42.addTrip(trip42);
-        MitoPerson worker43 = new MitoPerson(43, MitoOccupationStatus.WORKER, DummyOccupation.dummy, 20, MitoGender.MALE, false);
+        MitoPerson worker43 = new MitoPerson(43,dataSet.getHouseholds().get(4), MitoOccupationStatus.WORKER, DummyOccupation.dummy, 20, MitoGender.MALE, false, true);
         MitoTrip trip43 = new MitoTrip(3, HBW);
         worker43.addTrip(trip43);
-        MitoPerson child44 = new MitoPerson(44, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false);
+        MitoPerson child44 = new MitoPerson(44,dataSet.getHouseholds().get(4), MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false, true);
         MitoTrip trip44 = new MitoTrip(4, HBE);
         child44.addTrip(trip44);
-        MitoPerson child45 = new MitoPerson(45, MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false);
+        MitoPerson child45 = new MitoPerson(45,dataSet.getHouseholds().get(4), MitoOccupationStatus.STUDENT, DummyOccupation.dummy, 10, MitoGender.FEMALE, false, true);
         MitoTrip trip45 = new MitoTrip(5, HBE);
         child45.addTrip(trip45);
 

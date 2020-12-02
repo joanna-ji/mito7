@@ -29,7 +29,12 @@ public class Properties {
     public static final String TRIP_ATTRACTION_OUTPUT = "trip.attraction.output";
     public static final String SCALE_FACTOR_FOR_TRIP_GENERATION = "tg.scale.factor";
     public static final String TG_BINARY_LOGIT_COEFFICIENTS = "tg.binary.logit.coeffs";
+    public static final String TG_ORDERED_LOGIT_COEFFICIENTS = "tg.ordered.logit.coeffs";
     public static final String TG_NEGATIVE_BINOMIAL_COEFFICIENTS = "tg.negative.binomial.coeffs";
+
+    public static final String DOMINANT_COMMUTE_MODE_COEFFICIENTS = "dominantCommuteMode.coeffs";
+
+    public static final String MODE_RESTRICTION_COEFFICIENTS = "modeRestriction.coeffs";
 
     public static final String BUS_TRAVEL_TIME_SKIM = "bus.travelTime";
     public static final String TRAM_METRO_TRAVEL_TIME_SKIM = "tramMetro.travelTime";
@@ -55,6 +60,8 @@ public class Properties {
     public static final String MATSIM_ITERATIONS = "matsim.iterations";
     public static final String ZONE_SHAPEFILE_ID_FIELD = "zone.shapefile.id.field";
     public static final String DEFAULT_BUDGET = "default.budget.";
+
+    public static final String TRAVEL_TIME_BUDGET_COEFFICIENTS = "ttb.coeffs";
 
     public static final String PRINT_OUT_SKIM = "print.skim";
     public static final String SKIM_FILE_NAME = "skim.file.name";

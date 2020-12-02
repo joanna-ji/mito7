@@ -10,6 +10,8 @@ public enum Purpose implements Id {
     HBE,
     HBS,
     HBO,
+    HBR,
+    RRT,
     NHBW,
     NHBO,
     AIRPORT;

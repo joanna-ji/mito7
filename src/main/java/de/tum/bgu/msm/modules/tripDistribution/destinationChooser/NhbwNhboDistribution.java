@@ -5,8 +5,6 @@ import com.google.common.math.LongMath;
 import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
-import de.tum.bgu.msm.resources.Properties;
-import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix1D;
@@ -68,7 +66,7 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
 
     public static NhbwNhboDistribution nhbo(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
                                             TravelTimes travelTimes, double peakHour) {
-        return new NhbwNhboDistribution(Purpose.NHBO, ImmutableList.of(HBO, HBE, HBS),
+        return new NhbwNhboDistribution(Purpose.NHBO, ImmutableList.of(HBO, HBE, HBS, HBR, RRT),
                 null, baseProbabilites, householdPartition, zones, travelTimes, peakHour);
     }
 
@@ -177,6 +175,12 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
 
     private MitoZone findRandomOrigin(MitoHousehold household, Purpose priorPurpose) {
         TripDistribution.completelyRandomNhbTrips.incrementAndGet();
+        if(baseProbabilities.get(priorPurpose) == null) {
+            logger.info("prior purpose is null!");
+        }
+        if(household.getHomeZone() == null) {
+            logger.info("home zone is null!");
+        }
         final IndexedDoubleMatrix1D originProbabilities = baseProbabilities.get(priorPurpose).viewRow(household.getHomeZone().getId());
         final int destinationInternalId = MitoUtil.select(originProbabilities.toNonIndexedArray(), random);
         return zonesCopy.get(originProbabilities.getIdForInternalIndex(destinationInternalId));

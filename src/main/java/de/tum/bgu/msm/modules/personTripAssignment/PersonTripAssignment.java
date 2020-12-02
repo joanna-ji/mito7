@@ -64,7 +64,7 @@ public class PersonTripAssignment extends Module {
     private void selectPersonForTrip(MitoTrip trip, Map<MitoPerson, Double> probabilitiesByPerson) {
         MitoPerson selectedPerson = MitoUtil.select(probabilitiesByPerson);
         trip.setPerson(selectedPerson);
-        selectedPerson.addTrip(trip);
+//        selectedPerson.addTrip(trip);
     }
 
     private void assignHBW(MitoHousehold household, Map<MitoPerson, Double> probabilitiesByPerson) {

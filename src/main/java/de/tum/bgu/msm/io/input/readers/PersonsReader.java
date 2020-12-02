@@ -3,6 +3,7 @@ package de.tum.bgu.msm.io.input.readers;
 import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.io.input.AbstractCsvReader;
 import de.tum.bgu.msm.resources.Resources;
+import de.tum.bgu.msm.util.MitoUtil;
 import org.apache.log4j.Logger;
 
 import java.nio.file.Path;
@@ -114,10 +115,12 @@ public class PersonsReader extends AbstractCsvReader {
                 break;
         }
 
-        MitoPerson pp = new MitoPerson(id, mitoOccupationStatus, occupation, age, mitoGender, driversLicense);
+        // Bicycle ownership (random for now) todo: make not random!
+        boolean ownBicycle = MitoUtil.getRandomObject().nextDouble() < 0.7;
+
+        MitoPerson pp = new MitoPerson(id, hh, mitoOccupationStatus, occupation, age, mitoGender, driversLicense, ownBicycle);
 
         hh.addPerson(pp);
-        pp.setHousehold(hh);
         dataSet.addPerson(pp);
     }
 }

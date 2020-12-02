@@ -10,9 +10,9 @@ import de.tum.bgu.msm.modules.modeChoice.calculators.AirportModeChoiceCalculator
 import de.tum.bgu.msm.modules.modeChoice.calculators.CalibratingModeChoiceCalculatorImpl;
 import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculatorImpl;
 import de.tum.bgu.msm.modules.personTripAssignment.PersonTripAssignment;
-import de.tum.bgu.msm.modules.travelTimeBudget.TravelTimeBudgetModule;
+import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
 import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
-import de.tum.bgu.msm.modules.tripGeneration.TripGeneration;
+import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactorySampleEnumeration;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
@@ -20,7 +20,10 @@ import de.tum.bgu.msm.util.ImplementationConfig;
 import de.tum.bgu.msm.util.MitoUtil;
 import org.apache.log4j.Logger;
 
+import java.util.EnumSet;
 import java.util.Random;
+
+import static de.tum.bgu.msm.data.Purpose.*;
 
 /**
  * Implements the Microsimulation Transport Orchestrator (MITO)
@@ -66,7 +69,7 @@ public final class MitoModelForModeChoiceCalibration {
         logger.info("Started the Microsimulation Transport Orchestrator (MITO)");
 
         logger.info("Running Module: Microscopic Trip Generation");
-        TripGeneration tg = new TripGeneration(dataSet, new TripsByPurposeGeneratorFactorySampleEnumeration());
+        MandatoryTripGeneration tg = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactorySampleEnumeration());
         tg.run();
         if (dataSet.getTrips().isEmpty()) {
             logger.warn("No trips created. End of program.");
@@ -78,11 +81,11 @@ public final class MitoModelForModeChoiceCalibration {
         personTripAssignment.run();
 
         logger.info("Running Module: Travel Time Budget Calculation");
-        TravelTimeBudgetModule ttb = new TravelTimeBudgetModule(dataSet);
+        MandatoryTravelTimeBudgetModule ttb = new MandatoryTravelTimeBudgetModule(dataSet);
         ttb.run();
 
         logger.info("Running Module: Microscopic Trip Distribution");
-        TripDistribution distribution = new TripDistribution(dataSet);
+        TripDistribution distribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE,HBS,HBO,NHBW,NHBO));
         distribution.run();
 
         ModeChoice modeChoice = new ModeChoice(dataSet);

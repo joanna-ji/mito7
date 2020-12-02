@@ -1,6 +1,9 @@
 package de.tum.bgu.msm.modules.tripGeneration;
 
-import de.tum.bgu.msm.data.*;
+import de.tum.bgu.msm.data.DataSet;
+import de.tum.bgu.msm.data.MitoPerson;
+import de.tum.bgu.msm.data.MitoTrip;
+import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import org.apache.log4j.Logger;
@@ -13,8 +16,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
-import static de.tum.bgu.msm.data.Purpose.*;
 
 /**
  * Created by Nico on 20.07.2017.
@@ -29,10 +30,11 @@ public class RawTripGenerator {
     private final DataSet dataSet;
     private TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory;
 
-    private final EnumSet<Purpose> PURPOSES = EnumSet.of(HBW, HBE, HBS, HBO, NHBW, NHBO);
+    private final EnumSet<Purpose> PURPOSES;
 
-    public RawTripGenerator(DataSet dataSet, TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory) {
+    public RawTripGenerator(DataSet dataSet, EnumSet<Purpose> purposes, TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory) {
         this.dataSet = dataSet;
+        this.PURPOSES = purposes;
         this.tripsByPurposeGeneratorFactory = tripsByPurposeGeneratorFactory;
     }
 
@@ -56,7 +58,7 @@ public class RawTripGenerator {
             logger.info("Created " + sum + " trips for " + purpose);
             final Map<MitoPerson, List<MitoTrip>> tripsByPersons = result.getSecond();
             for(Map.Entry<MitoPerson, List<MitoTrip>> tripsByPerson: tripsByPersons.entrySet()) {
-                tripsByPerson.getKey().setTrips(tripsByPerson.getValue());
+                tripsByPerson.getKey().setTripsByPurpose(tripsByPerson.getValue(), purpose);
                 tripsByPerson.getKey().getHousehold().setTripsByPurpose(tripsByPerson.getValue(), purpose);
                 dataSet.addTrips(tripsByPerson.getValue());
             }
