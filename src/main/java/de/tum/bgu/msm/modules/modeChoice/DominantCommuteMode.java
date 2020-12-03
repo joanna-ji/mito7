@@ -14,10 +14,12 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static de.tum.bgu.msm.data.Mode.*;
+import static de.tum.bgu.msm.data.Purpose.*;
 
 public class DominantCommuteMode extends Module {
 
     private final static Logger logger = Logger.getLogger(ModeChoice.class);
+    private final static EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,publicTransport,bicycle,walk);
 
     public DominantCommuteMode(DataSet dataSet) {
         super(dataSet);
@@ -42,20 +44,18 @@ public class DominantCommuteMode extends Module {
 
         private final static Path dominantModeCoefPath = Resources.instance.getDominantCommuteModeCoefficients();
 
-        private final Map<String, Double> autoDriverCoef;
-        private final Map<String, Double> autoPassengerCoef;
-        private final Map<String, Double> publicTransportCoef;
-        private final Map<String, Double> cycleCoef;
-        private final Map<String, Double> walkCoef;
+        private final Map<Mode, Map<String, Double>> coefficients = new HashMap<>();
+        private final List<Tuple<EnumSet<Mode>, Double>> nests = new ArrayList<>();
 
         dominantCommuteModeChoice(DataSet dataSet) {
             super(MitoUtil.getRandomObject().nextLong());
             this.dataSet = dataSet;
-            this.autoDriverCoef = new CoefficientReader(dataSet, autoDriver, dominantModeCoefPath).readCoefficients();
-            this.autoPassengerCoef = new CoefficientReader(dataSet, autoPassenger, dominantModeCoefPath).readCoefficients();
-            this.publicTransportCoef = new CoefficientReader(dataSet, publicTransport, dominantModeCoefPath).readCoefficients();
-            this.cycleCoef = new CoefficientReader(dataSet, bicycle, dominantModeCoefPath).readCoefficients();
-            this.walkCoef = new CoefficientReader(dataSet, walk, dominantModeCoefPath).readCoefficients();
+            for(Mode mode : MODES) {
+                coefficients.put(mode, new CoefficientReader(dataSet, mode, dominantModeCoefPath).readCoefficients());
+            }
+            nests.add(new Tuple<>(EnumSet.of(autoDriver, autoPassenger), 0.455136));
+            nests.add(new Tuple<>(EnumSet.of(publicTransport), 1.));
+            nests.add(new Tuple<>(EnumSet.of(bicycle, walk), 0.767650));
         }
 
         @Override
@@ -66,7 +66,8 @@ public class DominantCommuteMode extends Module {
                     if (person.getTripsForPurpose(Purpose.HBW).size() + person.getTripsForPurpose(Purpose.HBE).size() == 0) {
                         nonCommuters++;
                     } else {
-                        chooseDominantCommuteMode(person, calculateProbabilities(calculateUtilities(person)));
+                        chooseDominantCommuteMode(person, LogitProbabilitiesCalculator.nestedLogit(
+                                calculateUtilities(person),nests));
                     }
                 }
             } catch (Exception e) {
@@ -79,23 +80,11 @@ public class DominantCommuteMode extends Module {
         private EnumMap<Mode, Double> calculateUtilities(MitoPerson person) {
             EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
 
-            utilities.put(autoDriver , getResponse(person, autoDriverCoef));
-            utilities.put(autoPassenger , getResponse(person, autoPassengerCoef));
-            utilities.put(publicTransport , getResponse(person, publicTransportCoef));
-            utilities.put(bicycle , getResponse(person, cycleCoef));
-            utilities.put(walk , getResponse(person, walkCoef));
+            for(Mode mode : MODES) {
+                utilities.put(mode, getResponse(person, coefficients.get(mode)));
+            }
 
             return (utilities);
-        }
-
-        private EnumMap<Mode, Double> calculateProbabilities(EnumMap<Mode, Double> utilities) {
-
-            List<Tuple<EnumSet<Mode>, Double>> nests = new ArrayList<>();
-            nests.add(new Tuple<>(EnumSet.of(autoDriver, autoPassenger), 0.455136));
-            nests.add(new Tuple<>(EnumSet.of(publicTransport), 1.));
-            nests.add(new Tuple<>(EnumSet.of(bicycle, walk), 0.767650));
-
-            return calculateNestedLogitProbabilities(utilities, nests);
         }
 
         private double getResponse(MitoPerson pp, Map<String, Double> coefficients) {
@@ -223,44 +212,6 @@ public class DominantCommuteMode extends Module {
             return response;
         }
 
-        private EnumMap<Mode, Double> calculateNestedLogitProbabilities(EnumMap<Mode, Double> utilities,
-                                                                        List<Tuple<EnumSet<Mode>,Double>> nests) {
-
-            EnumMap<Mode, Double> expModeUtils = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> expNestSums = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> expNestUtils = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> probabilities = new EnumMap(Mode.class);
-            double expSumRoot = 0;
-
-            for(Tuple<EnumSet<Mode>,Double> nest : nests) {
-                double expNestSum = 0;
-                EnumSet<Mode> modes = nest.getFirst();
-                double nestingCoefficient = nest.getSecond();
-                for(Mode mode : modes) {
-                    double expModeUtil = Math.exp(utilities.get(mode) / nestingCoefficient);
-                    expModeUtils.put(mode, expModeUtil);
-                    expNestSum += expModeUtil;
-                }
-                double expNestUtil = Math.exp(nestingCoefficient * Math.log(expNestSum));
-                for(Mode mode : modes) {
-                    expNestSums.put(mode, expNestSum);
-                    expNestUtils.put(mode, expNestUtil);
-                }
-                expSumRoot += expNestUtil;
-            }
-
-            Set<Mode> choiceSet = utilities.keySet();
-            for (Mode mode : choiceSet) {
-                double expSumNest = expNestSums.get(mode);
-                if(expSumNest == 0) {
-                    probabilities.put(mode, 0.);
-                } else {
-                    probabilities.put(mode, (expModeUtils.get(mode) * expNestUtils.get(mode)) / (expSumNest * expSumRoot));
-                }
-            }
-            return probabilities;
-        }
-
         private void chooseDominantCommuteMode(MitoPerson person, EnumMap<Mode, Double> probabilities) {
             if (probabilities == null) {
                 nonCommuters++;
@@ -271,11 +222,14 @@ public class DominantCommuteMode extends Module {
             probabilities.replaceAll((mode, probability) -> probability.isNaN() ? 0: probability);
 
             double sum = MitoUtil.getSum(probabilities.values());
+            if (Math.abs(sum - 1) > 0.01) {
+                logger.warn("Mode probabilities don't add to 1 for person " + person.getId());
+            }
             if (sum > 0) {
                 final Mode select = MitoUtil.select(probabilities, random);
                 person.setDominantCommuteMode(select);
             } else {
-                logger.error("Dominant Commute Mode: Negative probabilities for person " + person.getId());
+                logger.error("Dominant Commute Mode: zero/negative probabilities for person " + person.getId());
                 person.setDominantCommuteMode(null);
             }
         }

@@ -63,7 +63,7 @@ public class ModeChoiceTest {
     @Test
     public void testModeChoice() {
         ModeChoice modeChoice = new ModeChoice(dataSet);
-        ModeChoice.ModeChoiceByPurpose modeChoiceByPurpose = new ModeChoice.ModeChoiceByPurpose(Purpose.HBW,dataSet, new ModeChoiceCalculatorImpl());
+//        ModeChoice.ModeChoiceByPurpose modeChoiceByPurpose = new ModeChoice.ModeChoiceByPurpose(Purpose.HBW,dataSet, new ModeChoiceCalculatorImpl());
     }
 
 

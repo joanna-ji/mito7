@@ -25,6 +25,7 @@ public class MitoPerson implements Id {
     private double totalTravelTimeBudget = 0.;
 
     private Mode dominantCommuteMode;
+    private ModeRestriction modeRestriction;
 
     public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense, boolean ownBicycle) {
         this.id = id;
@@ -77,6 +78,10 @@ public class MitoPerson implements Id {
     }
 
     public Mode getDominantCommuteMode() { return dominantCommuteMode; }
+
+    public void setModeRestriction(ModeRestriction modeRestriction) {this.modeRestriction = modeRestriction; }
+
+    public ModeRestriction getModeRestriction() {return modeRestriction; }
 
     public List<MitoTrip> getTripsForPurpose(Purpose purpose) {
         if(tripsByPurpose.get(purpose) != null) {

@@ -79,7 +79,8 @@ public class SummarizeData {
         LOGGER.info("  Writing person file");
         Path filepp = Resources.instance.getOutputPersonsPath();
         PrintWriter pwp = MitoUtil.openFileForSequentialWriting(filepp.toAbsolutePath().toString(), false);
-        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle,dominantCommuteMode," +
+        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle," +
+                "p.dominantCommuteMode,p.modeRestriction," +
                 "trips,trips_HBW,trips_HBE,trips_HBS,trips_HBR,trips_HBO,trips_RRT,trips_NHBW,trips_NHBO,trips_AIRPORT," +
                 "TTB,TTB_HBW,TTB_HBE,TTB_HBS,TTB_HBR,TTB_HBO,TTB_RRT,TTB_NHBW,TTB_NHBO");
         for(MitoHousehold hh: dataSet.getHouseholds().values()) {
@@ -99,6 +100,8 @@ public class SummarizeData {
                     pwp.print(pp.hasBicycle());
                     pwp.print(",");
                     pwp.print(pp.getDominantCommuteMode());
+                    pwp.print(",");
+                    pwp.print(pp.getModeRestriction());
                     pwp.print(",");
                     pwp.print(pp.getTrips().size());
                     pwp.print(",");

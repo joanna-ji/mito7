@@ -2,6 +2,7 @@ package de.tum.bgu.msm.modules.modeChoice;
 
 import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
+import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.modeChoice.calculators.AirportModeChoiceCalculator;
 import de.tum.bgu.msm.modules.modeChoice.calculators.CalibratingModeChoiceCalculatorImpl;
@@ -13,46 +14,34 @@ import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import org.apache.log4j.Logger;
 
+import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static de.tum.bgu.msm.resources.Properties.AUTONOMOUS_VEHICLE_CHOICE;
+import static de.tum.bgu.msm.data.Mode.*;
+import static de.tum.bgu.msm.data.Purpose.*;
 
 public class ModeChoice extends Module {
 
-    private final static Logger logger = Logger.getLogger(ModeChoice.class);
+    private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
+    private final static EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,publicTransport,bicycle,walk);
 
-    private final Map<Purpose, ModeChoiceCalculator> modeChoiceCalculatorByPurpose = new EnumMap<>(Purpose.class);
+    private final static Logger logger = Logger.getLogger(ModeChoice.class);
+    private final static Path modeChoiceCoefFolder = Resources.instance.getModeChoiceCoefficients();
+    private final Map<Purpose, Map<Mode, Map<String, Double>>> coefficients = new EnumMap<>(Purpose.class);
 
     public ModeChoice(DataSet dataSet) {
         super(dataSet);
-        boolean includeAV = Resources.instance.getBoolean(AUTONOMOUS_VEHICLE_CHOICE, false);
-
-        if(!includeAV) {
-            modeChoiceCalculatorByPurpose.put(Purpose.HBW, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.HBE, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.HBS, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.HBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.NHBW,new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.NHBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculatorImpl(), dataSet.getModeChoiceCalibrationData()));
-            modeChoiceCalculatorByPurpose.put(Purpose.AIRPORT, new CalibratingModeChoiceCalculatorImpl(new AirportModeChoiceCalculator(), dataSet.getModeChoiceCalibrationData()));
-        } else {
-            modeChoiceCalculatorByPurpose.put(Purpose.HBW, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.HBE, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.HBS, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.HBO, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.NHBW, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.NHBO, new AVModeChoiceCalculatorImpl());
-            modeChoiceCalculatorByPurpose.put(Purpose.AIRPORT, new AirportModeChoiceCalculator());
-        }
-    }
-
-    public void registerModeChoiceCalculator(Purpose purpose, ModeChoiceCalculator modeChoiceCalculator) {
-        final ModeChoiceCalculator prev = modeChoiceCalculatorByPurpose.put(purpose, modeChoiceCalculator);
-        if(prev != null) {
-            logger.info("Overwrote mode choice calculator for purpose " + purpose + " with " + modeChoiceCalculator.getClass());
+        for (Purpose purpose : PURPOSES) {
+            Map<Mode, Map<String, Double>> coefficientsByMode = new EnumMap<>(Mode.class);
+            for (Mode mode : MODES) {
+                coefficientsByMode.put(mode, new CoefficientReader(dataSet, mode,
+                        modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
+            }
+            coefficients.put(purpose, coefficientsByMode);
         }
     }
 
@@ -65,8 +54,8 @@ public class ModeChoice extends Module {
 
     private void modeChoiceByPurpose() {
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(Purpose.values().length);
-        for (Purpose purpose : Purpose.values()) {
-            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet, modeChoiceCalculatorByPurpose.get(purpose)));
+        for (Purpose purpose : PURPOSES) {
+            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet, coefficients.get(purpose)));
         }
         executor.execute();
     }
@@ -105,25 +94,25 @@ public class ModeChoice extends Module {
 
         private final Purpose purpose;
         private final DataSet dataSet;
+        private final Map<Mode, Map<String, Double>> coefficients;
         private final TravelTimes travelTimes;
-        private final ModeChoiceCalculator modeChoiceCalculator;
         private int countTripsSkipped;
 
-        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet, ModeChoiceCalculator modeChoiceCalculator) {
+        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet, Map<Mode, Map<String, Double>> coefficients) {
             super(MitoUtil.getRandomObject().nextLong());
             this.purpose = purpose;
             this.dataSet = dataSet;
+            this.coefficients = coefficients;
             this.travelTimes = dataSet.getTravelTimes();
-            this.modeChoiceCalculator = modeChoiceCalculator;
         }
 
         @Override
         public Void call() {
             countTripsSkipped = 0;
             try {
-                for (MitoHousehold household : dataSet.getHouseholds().values()) {
-                    for (MitoTrip trip : household.getTripsForPurpose(purpose)) {
-                        chooseMode(trip, calculateTripProbabilities(household, trip));
+                for (MitoPerson person : dataSet.getPersons().values()) {
+                    for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
+                        chooseMode(trip, calculateProbabilities(calculateUtilities(person, trip)));
                     }
                 }
             } catch (Exception e) {
@@ -133,24 +122,25 @@ public class ModeChoice extends Module {
             return null;
         }
 
-        private EnumMap<Mode, Double> calculateTripProbabilities(MitoHousehold household, MitoTrip trip) {
-            if (trip.getTripOrigin() == null || trip.getTripDestination() == null) {
-                countTripsSkipped++;
-                return null;
+        private EnumMap<Mode, Double> calculateUtilities(MitoPerson person, MitoTrip trip) {
+            EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
+
+            for(Mode mode : MODES) {
+                utilities.put(mode, getResponse(person, trip, coefficients.get(mode)));
             }
 
-            final int originId = trip.getTripOrigin().getZoneId();
+            return (utilities);
+        }
 
-            final int destinationId = trip.getTripDestination().getZoneId();
-            final MitoZone origin = dataSet.getZones().get(originId);
-            final MitoZone destination = dataSet.getZones().get(destinationId);
-            final double travelDistanceAuto = dataSet.getTravelDistancesAuto().getTravelDistance(originId,
-                    destinationId);
-            final double travelDistanceNMT = dataSet.getTravelDistancesNMT().getTravelDistance(originId,
-                    destinationId);
-            return modeChoiceCalculator.calculateProbabilities(purpose, household, trip.getPerson(), origin, destination, travelTimes, travelDistanceAuto,
-                    travelDistanceNMT, dataSet.getPeakHour());
-    }
+        private double getResponse(MitoPerson person, MitoTrip trip, Map<String, Double> coefficients) {
+            return -1.;
+        }
+
+        private EnumMap<Mode, Double> calculateProbabilities(EnumMap<Mode, Double> utilities) {
+            EnumMap<Mode, Double> probabilities = new EnumMap(Mode.class);
+
+            return probabilities;
+        }
 
         private void chooseMode(MitoTrip trip, EnumMap<Mode, Double> probabilities) {
             if (probabilities == null) {

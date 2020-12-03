@@ -1,17 +1,17 @@
 package de.tum.bgu.msm.modules.modeChoice;
 
-import de.tum.bgu.msm.data.DataSet;
-import de.tum.bgu.msm.data.Purpose;
+import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
+import org.apache.commons.math3.analysis.function.Logit;
 import org.apache.log4j.Logger;
 
 import java.nio.file.Path;
-import java.util.Map;
+import java.util.*;
 
 import static de.tum.bgu.msm.data.ModeRestriction.*;
 
@@ -43,97 +43,73 @@ public class ModeRestrictionChoice extends Module {
 
         private final static Path modeRestrictionCoefPath = Resources.instance.getModeRestrictionCoefficients();
 
-        private final Map<String, Double> autoCoef;
-        private final Map<String, Double> autoPtWalkCoef;
-        private final Map<String, Double> autoPtWalkCycleCoef;
-        private final Map<String, Double> ptWalkCoef;
-        private final Map<String, Double> ptWalkCycleCoef;
+        private final Map<ModeRestriction, Map<String, Double>> coefficients = new HashMap<>();
 
         modeRestrictionChoice(DataSet dataSet) {
             super(MitoUtil.getRandomObject().nextLong());
             this.dataSet = dataSet;
-            this.autoCoef = new CoefficientReader(dataSet, auto, modeRestrictionCoefPath).readCoefficients();
-            this.autoPtWalkCoef = new CoefficientReader(dataSet, autoPtWalk, modeRestrictionCoefPath).readCoefficients();
-            this.autoPtWalkCycleCoef = new CoefficientReader(dataSet, autoPtWalkCycle, modeRestrictionCoefPath).readCoefficients();
-            this.ptWalkCoef = new CoefficientReader(dataSet, ptWalk, modeRestrictionCoefPath).readCoefficients();
-            this.ptWalkCycleCoef = new CoefficientReader(dataSet, ptWalkCycle, modeRestrictionCoefPath).readCoefficients();
+            for(ModeRestriction modeRestriction : ModeRestriction.values()) {
+                coefficients.put(modeRestriction,
+                        new CoefficientReader(dataSet, modeRestriction, modeRestrictionCoefPath).readCoefficients());
+            }
         }
 
         @Override
         public Void call() {
             nonMobilePersons = 0;
-//            try {
-//                for (MitoPerson person : dataSet.getPersons().values()) {
-//                    if(person.getTrips().size() == 0) {
-//                        nonMobilePersons++;
-//                    } else {
-//                        chooseModeRestriction(person, calculateProbabilities(calculateUtilities(person)));
-//                    }
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
+            try {
+                for (MitoPerson person : dataSet.getPersons().values()) {
+                    if(person.getTrips().size() == 0) {
+                        nonMobilePersons++;
+                    } else {
+                        chooseModeRestriction(person,
+                                LogitProbabilitiesCalculator.multinomialLogit(
+                                calculateUtilities(person, determineAvailability(person))));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             logger.info(nonMobilePersons + " non-mobile persons skipped");
             return null;
         }
 
- /*       private ArrayList<ModeRestriction> calculateAvailability(MitoPerson person) {
+        private EnumSet<ModeRestriction> determineAvailability(MitoPerson person) {
 
-            ArrayList<ModeRestriction> availableChoices = new ArrayList<>();
+            EnumSet<ModeRestriction> availableChoices = EnumSet.noneOf(ModeRestriction.class);
             Mode dominantCommuteMode = person.getDominantCommuteMode();
 
             boolean commuter = dominantCommuteMode != null;
+            boolean hasRrtTrips = person.getTripsForPurpose(Purpose.RRT).size() > 0;
 
-            if(!(dominantCommuteMode == null)) {
-                for(ModeRestriction modeRestriction : ModeRestriction.values()) {
-                    if(commuter && modeRestriction.getRestrictedModeSet().contains(dominantCommuteMode)) {
-                        availableChoices.add(modeRestriction);
-                    } else if (!commuter) {
+            EnumSet<ModeRestriction> possibleOptions;
+            if(hasRrtTrips) {
+                possibleOptions = EnumSet.of(autoPtWalk, autoPtWalkCycle, ptWalk, ptWalkCycle);
+            } else {
+                possibleOptions = EnumSet.allOf(ModeRestriction.class);
+            }
+
+            if(commuter) {
+                for (ModeRestriction modeRestriction : possibleOptions) {
+                    if (modeRestriction.getRestrictedModeSet().contains(dominantCommuteMode)) {
                         availableChoices.add(modeRestriction);
                     }
                 }
+            } else {
+                availableChoices.addAll(possibleOptions);
             }
-
-            if()
-
-            if(dominantCommuteMode == null & person.getTripsForPurpose(Purpose.RRT).size() == 0) {
-
-            }
-
-            if (person.getTripsForPurpose(Purpose.RRT).size() == 0) {
-                if (dominantCommuteMode == null) {
-                    availableChoices.add(auto);
-                }
-                else if (dominantCommuteMode.equals(Mode.autoDriver) || dominantCommuteMode.equals(Mode.autoPassenger)) {
-                    availableChoices.add(auto);
-                }
-            }
-
-            if
-
-
-
-            Mode dominantCommuteMode = person.getDominantCommuteMode();
-
-
+            return availableChoices;
         }
 
-        private EnumMap<ModeRestriction, Double> calculateUtilities(MitoPerson person) {
+        private EnumMap<ModeRestriction, Double> calculateUtilities(MitoPerson person, EnumSet<ModeRestriction> availableOptions) {
 
             EnumMap<ModeRestriction, Double> utilities = new EnumMap(ModeRestriction.class);
 
-            utilities.put(auto , getResponse(person, autoCoef));
-            utilities.put(autoPtWalk , getResponse(person, autoPtWalkCoef));
-            utilities.put(autoPtWalkCycle , getResponse(person, autoPtWalkCycleCoef));
-            utilities.put(ptWalk , getResponse(person, ptWalkCoef));
-            utilities.put(ptWalkCycle , getResponse(person, ptWalkCycleCoef));
+            for(ModeRestriction modeRestriction : availableOptions) {
+                utilities.put(modeRestriction, getResponse(person, coefficients.get(modeRestriction)));
+            }
 
             return (utilities);
-        }
-
-        private EnumMap<ModeRestriction, Double> calculateProbabilities(EnumMap<ModeRestriction, Double> utilities) {
-
-            return calculateMultinomialLogitProbabilities(utilities);
         }
 
         private double getResponse(MitoPerson pp, Map<String, Double> coefficients) {
@@ -282,67 +258,19 @@ public class ModeRestrictionChoice extends Module {
             return response;
         }
 
-        private EnumMap<ModeRestriction, Double> calculateMultinomialLogitProbabilities(EnumMap<ModeRestriction, Double> utilities) {
-            EnumMap<Mode, Double> expModeUtils = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> expNestSums = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> expNestUtils = new EnumMap(Mode.class);
-            EnumMap<Mode, Double> probabilities = new EnumMap(Mode.class);
-            double expSumRoot = 0;
-
-
-
-            for(ModeRestriction option : ModeRestriction.values()) {
-                expSumRoot += Math.exp(utilities.get(option));
-            }
-
-            for(Tuple<EnumSet<Mode>,Double> nest : nests) {
-                double expNestSum = 0;
-                EnumSet<Mode> modes = nest.getFirst();
-                double nestingCoefficient = nest.getSecond();
-                for(Mode mode : modes) {
-                    double expModeUtil = Math.exp(utilities.get(mode) / nestingCoefficient);
-                    expModeUtils.put(mode, expModeUtil);
-                    expNestSum += expModeUtil;
-                }
-                double expNestUtil = Math.exp(nestingCoefficient * Math.log(expNestSum));
-                for(Mode mode : modes) {
-                    expNestSums.put(mode, expNestSum);
-                    expNestUtils.put(mode, expNestUtil);
-                }
-                expSumRoot += expNestUtil;
-            }
-
-            Set<Mode> choiceSet = utilities.keySet();
-            for (Mode mode : choiceSet) {
-                double expSumNest = expNestSums.get(mode);
-                if(expSumNest == 0) {
-                    probabilities.put(mode, 0.);
-                } else {
-                    probabilities.put(mode, (expModeUtils.get(mode) * expNestUtils.get(mode)) / (expSumNest * expSumRoot));
-                }
-            }
-            return probabilities;
-        }
-
-        private void chooseModeRestriction(MitoPerson person, EnumMap<Mode, Double> probabilities) {
-            if (probabilities == null) {
-                nonMobilePersons++;
-                return;
-            }
-
-            //found Nan when there is no transit!!
-            probabilities.replaceAll((mode, probability) -> probability.isNaN() ? 0: probability);
-
+        private void chooseModeRestriction(MitoPerson person, EnumMap<ModeRestriction, Double> probabilities) {
             double sum = MitoUtil.getSum(probabilities.values());
+            if (Math.abs(sum - 1) > 0.1) {
+                logger.warn("Mode probabilities don't add to 1 for person " + person.getId());
+            }
             if (sum > 0) {
-                final Mode select = MitoUtil.select(probabilities, random);
-                person.setDominantCommuteMode(select);
+                final ModeRestriction select = MitoUtil.select(probabilities, random);
+                person.setModeRestriction(select);
             } else {
-                logger.error("Dominant Commute Mode: Negative probabilities for person " + person.getId());
-                person.setDominantCommuteMode(null);
+                logger.error("Mode Restriction: zero/negative probabilities for person " + person.getId());
+                person.setModeRestriction(null);
             }
         }
-        */
     }
 }
 
