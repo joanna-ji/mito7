@@ -20,18 +20,17 @@ import static de.tum.bgu.msm.data.Purpose.*;
 /**
  * @author Nico
  */
-public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<Void> {
+public final class RrtDistribution extends RandomizableConcurrentFunction<Void> {
 
     private final static double VARIANCE_DOUBLED = 500 * 2;
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
-    private final static Logger logger = Logger.getLogger(NhbwNhboDistribution.class);
+    private final static Logger logger = Logger.getLogger(RrtDistribution.class);
 
     private final double peakHour;
 
     private final Purpose purpose;
     private final List<Purpose> priorPurposes;
-    private final MitoOccupationStatus relatedMitoOccupationStatus;
     private final EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities;
     private final TravelTimes travelTimes;
 
@@ -44,13 +43,13 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
 
     private double mean;
 
-    private NhbwNhboDistribution(Purpose purpose, List<Purpose> priorPurposes, MitoOccupationStatus relatedMitoOccupationStatus,
-                                 EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                 TravelTimes travelTimes, double peakHour) {
+    private RrtDistribution(Purpose purpose, List<Purpose> priorPurposes,
+                            EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities,
+                            Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                            TravelTimes travelTimes, double peakHour) {
         super(MitoUtil.getRandomObject().nextLong());
         this.purpose = purpose;
         this.priorPurposes = priorPurposes;
-        this.relatedMitoOccupationStatus = relatedMitoOccupationStatus;
         this.baseProbabilities = baseProbabilities;
         this.zonesCopy = new HashMap<>(zones);
         this.travelTimes = travelTimes;
@@ -58,16 +57,11 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
         this.householdPartition = householdPartition;
     }
 
-    public static NhbwNhboDistribution nhbw(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                            TravelTimes travelTimes, double peakHour) {
-        return new NhbwNhboDistribution(Purpose.NHBW, Collections.singletonList(HBW),
-                MitoOccupationStatus.WORKER, baseProbabilites, householdPartition, zones, travelTimes, peakHour);
-    }
-
-    public static NhbwNhboDistribution nhbo(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                            TravelTimes travelTimes, double peakHour) {
-        return new NhbwNhboDistribution(Purpose.NHBO, ImmutableList.of(HBO, HBE, HBS, HBR),
-                null, baseProbabilites, householdPartition, zones, travelTimes, peakHour);
+    public static RrtDistribution rrt(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,
+                                      Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                      TravelTimes travelTimes, double peakHour) {
+        return new RrtDistribution(Purpose.RRT, ImmutableList.of(HBW, HBE, HBS, HBR, HBO),
+                baseProbabilites, householdPartition, zones, travelTimes, peakHour);
     }
 
     @Override
@@ -139,22 +133,21 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
     }
 
     private Location findOrigin(MitoHousehold household, MitoTrip trip) {
-        final List<Location> possibleBaseZones = new ArrayList<>();
-        for (Purpose purpose : priorPurposes) {
-            for (MitoTrip priorTrip : trip.getPerson().getTripsForPurpose(purpose)) {
-                possibleBaseZones.add(priorTrip.getTripDestination());
+        if (MitoUtil.getRandomObject().nextDouble() < 0.85) {
+            return household.getHomeZone();
+        } else {
+            final List<Location> possibleBaseZones = new ArrayList<>();
+            for (Purpose purpose : priorPurposes) {
+                for (MitoTrip priorTrip : trip.getPerson().getTripsForPurpose(purpose)) {
+                    possibleBaseZones.add(priorTrip.getTripDestination());
+                }
+            }
+            if (!possibleBaseZones.isEmpty()) {
+                return MitoUtil.select(random, possibleBaseZones);
+            } else {
+                return household.getHomeZone();
             }
         }
-        if (!possibleBaseZones.isEmpty()) {
-            return MitoUtil.select(random, possibleBaseZones);
-        }
-        if (trip.getPerson().getMitoOccupationStatus() == relatedMitoOccupationStatus &&
-            trip.getPerson().getOccupation() != null) {
-            return trip.getPerson().getOccupation();
-        }
-
-        final Purpose selectedPurpose = MitoUtil.select(random, priorPurposes);
-        return findRandomOrigin(household, selectedPurpose);
     }
 
     private MitoZone findDestination(int origin) {
@@ -169,19 +162,6 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
 
         int destinationInternalId = MitoUtil.select(baseProbs, random);
         return zonesCopy.get(row.getIdForInternalIndex(destinationInternalId));
-    }
-
-    private MitoZone findRandomOrigin(MitoHousehold household, Purpose priorPurpose) {
-        DiscretionaryTripDistribution.completelyRandomNhbTrips.incrementAndGet();
-        if(baseProbabilities.get(priorPurpose) == null) {
-            logger.info("prior purpose is null!");
-        }
-        if(household.getHomeZone() == null) {
-            logger.info("home zone is null!");
-        }
-        final IndexedDoubleMatrix1D originProbabilities = baseProbabilities.get(priorPurpose).viewRow(household.getHomeZone().getId());
-        final int destinationInternalId = MitoUtil.select(originProbabilities.toNonIndexedArray(), random);
-        return zonesCopy.get(originProbabilities.getIdForInternalIndex(destinationInternalId));
     }
 
     private void postProcessTrip(MitoTrip trip) {

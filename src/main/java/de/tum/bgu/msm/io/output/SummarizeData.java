@@ -30,8 +30,8 @@ public class SummarizeData {
         LOGGER.info("  Writing household file");
         Path filehh = Resources.instance.getOutputHouseholdPath();
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(filehh.toAbsolutePath().toString(), false);
-        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban," +
-                "TTB,TTB_HBW,TTB_HBE,TTB_HBS,TTB_HBR,TTB_HBO,TTB_RRT,TTB_NHBW,TTB_NHBO");
+        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.isMobile,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban," +
+                "hh.TTB,hh.TTB_HBW,hh.TTB_HBE,hh.TTB_HBS,hh.TTB_HBR,hh.TTB_HBO,hh.TTB_RRT,hh.TTB_NHBW,hh.TTB_NHBO");
         for (MitoHousehold hh : dataSet.getHouseholds().values()) {
             final MitoZone homeZone = hh.getHomeZone();
             if(homeZone == null) {
@@ -40,11 +40,13 @@ public class SummarizeData {
             }
             pwh.print(hh.getId());
             pwh.print(",");
-            pwh.print(homeZone);
+            pwh.print(homeZone.getZoneId());
             pwh.print(",");
             pwh.print(hh.getHomeLocation().x);
             pwh.print(",");
             pwh.print(hh.getHomeLocation().y);
+            pwh.print(",");
+            pwh.print(hh.isMobile() ? 1 : 0);
             pwh.print(",");
             pwh.print(hh.getHhSize());
             pwh.print(",");
@@ -81,8 +83,8 @@ public class SummarizeData {
         PrintWriter pwp = MitoUtil.openFileForSequentialWriting(filepp.toAbsolutePath().toString(), false);
         pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle," +
                 "p.dominantCommuteMode,p.modeRestriction," +
-                "trips,trips_HBW,trips_HBE,trips_HBS,trips_HBR,trips_HBO,trips_RRT,trips_NHBW,trips_NHBO,trips_AIRPORT," +
-                "TTB,TTB_HBW,TTB_HBE,TTB_HBS,TTB_HBR,TTB_HBO,TTB_RRT,TTB_NHBW,TTB_NHBO");
+                "p.trips,p.trips_HBW,p.trips_HBE,p.trips_HBS,p.trips_HBR,p.trips_HBO,p.trips_RRT,p.trips_NHBW,p.trips_NHBO,p.trips_AIRPORT," +
+                "p.TTB,p.TTB_HBW,p.TTB_HBE,p.TTB_HBS,p.TTB_HBR,p.TTB_HBO,p.TTB_RRT,p.TTB_NHBW,p.TTB_NHBO");
         for(MitoHousehold hh: dataSet.getHouseholds().values()) {
             for (MitoPerson pp : hh.getPersons().values()) {
                     pwp.print(pp.getId());
@@ -151,7 +153,7 @@ public class SummarizeData {
         LOGGER.info("  Writing trips file");
         String file = Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + dataSet.getYear() + "/microData/trips.csv";
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(file, false);
-        pwh.println("t.id,p.ID,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,time_auto,time_bus,time_train,time_tram_metro,mode,departure_time,departure_time_return");
+        pwh.println("t.id,p.ID,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,mode,departure_time,departure_time_return");
         for (MitoTrip trip : dataSet.getTrips().values()) {
             pwh.print(trip.getId());
             pwh.print(",");
@@ -217,8 +219,11 @@ public class SummarizeData {
             pwh.print(trip.getTripPurpose());
             pwh.print(",");
             if(origin != null && destination != null) {
-                double distance = dataSet.getTravelDistancesAuto().getTravelDistance(origin.getZoneId(), destination.getZoneId());
+                double distance = dataSet.getTravelDistancesNMT().getTravelDistance(origin.getZoneId(), destination.getZoneId());
                 pwh.print(distance);
+                pwh.print(",");
+                double distanceAuto = dataSet.getTravelDistancesAuto().getTravelDistance(origin.getZoneId(), destination.getZoneId());
+                pwh.print(distanceAuto);
                 pwh.print(",");
                 double timeAuto = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "car");
                 pwh.print(timeAuto);
@@ -232,7 +237,7 @@ public class SummarizeData {
                 double timeTramMetro = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "tramMetro");
                 pwh.print(timeTramMetro);
             } else {
-                pwh.print("NA,NA,NA,NA,NA");
+                pwh.print("NA,NA,NA,NA,NA,NA");
             }
             pwh.print(",");
             pwh.print(trip.getTripMode());

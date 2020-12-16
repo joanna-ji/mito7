@@ -6,7 +6,7 @@ import de.tum.bgu.msm.data.MitoTrip;
 import de.tum.bgu.msm.data.MitoZone;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.DiscretionaryTripDistribution;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix1D;
@@ -22,12 +22,12 @@ import java.util.stream.IntStream;
 /**
  * @author Nico
  */
-public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
+public class HbsHbrHboDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static double VARIANCE_DOUBLED = 30 * 2; // put very large number here to !
+    private final static double VARIANCE_DOUBLED = 30 * 2; // put very large number here to ???
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
-    private final static Logger logger = Logger.getLogger(HbsHboDistribution.class);
+    private final static Logger logger = Logger.getLogger(HbsHbrHboDistribution.class);
 
     private final double peakHour;
     private final Purpose purpose;
@@ -44,9 +44,9 @@ public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
     private double hhBudgetPerTrip;
     private double adjustedBudget;
 
-    private HbsHboDistribution(Purpose purpose, IndexedDoubleMatrix2D baseProbabilities,
-                               Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                               TravelTimes travelTimes, double peakHour) {
+    private HbsHbrHboDistribution(Purpose purpose, IndexedDoubleMatrix2D baseProbabilities,
+                                  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                  TravelTimes travelTimes, double peakHour) {
         super(MitoUtil.getRandomObject().nextLong());
         this.purpose = purpose;
         this.householdPartition = householdPartition;
@@ -57,24 +57,19 @@ public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
         this.peakHour = peakHour;
     }
 
-    public static HbsHboDistribution hbs(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                         TravelTimes travelTimes, double peakHour) {
-        return new HbsHboDistribution(Purpose.HBS, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
+    public static HbsHbrHboDistribution hbs(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                            TravelTimes travelTimes, double peakHour) {
+        return new HbsHbrHboDistribution(Purpose.HBS, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
     }
 
-    public static HbsHboDistribution hbo(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                         TravelTimes travelTimes, double peakHour) {
-        return new HbsHboDistribution(Purpose.HBO, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
+    public static HbsHbrHboDistribution hbo(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                            TravelTimes travelTimes, double peakHour) {
+        return new HbsHbrHboDistribution(Purpose.HBO, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
     }
 
-    public static HbsHboDistribution hbr(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                         TravelTimes travelTimes, double peakHour) {
-        return new HbsHboDistribution(Purpose.HBR, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
-    }
-
-    public static HbsHboDistribution rrt(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                         TravelTimes travelTimes, double peakHour) {
-        return new HbsHboDistribution(Purpose.RRT, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
+    public static HbsHbrHboDistribution hbr(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                            TravelTimes travelTimes, double peakHour) {
+        return new HbsHbrHboDistribution(Purpose.HBR, baseProbabilities, householdPartition, zones, travelTimes, peakHour);
     }
 
     @Override
@@ -95,14 +90,15 @@ public class HbsHboDistribution extends RandomizableConcurrentFunction<Void> {
                         trip.setTripDestination(zone);
                         if (zone == null) {
                             logger.debug("No destination found for trip" + trip);
-                            TripDistribution.failedTripsCounter.incrementAndGet();
+                            DiscretionaryTripDistribution.failedTripsCounter.incrementAndGet();
                             continue;
                         }
                         postProcessTrip(trip);
-                        TripDistribution.distributedTripsCounter.incrementAndGet();
+                        DiscretionaryTripDistribution.distributedTripsCounter.incrementAndGet();
                     }
                 } else {
-                    TripDistribution.failedTripsCounter.incrementAndGet();
+                    logger.warn("Household" + household.getId() + "has " + purpose + " trips but no TTB!");
+                    DiscretionaryTripDistribution.failedTripsCounter.incrementAndGet();
                 }
             }
             counter++;

@@ -2,7 +2,7 @@ package de.tum.bgu.msm.modules.tripDistribution.destinationChooser;
 
 import com.google.common.math.LongMath;
 import de.tum.bgu.msm.data.*;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.MandatoryTripDistribution;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix1D;
@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public final class HbeHbwDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static Logger logger = Logger.getLogger(HbsHboDistribution.class);
+    private final static Logger logger = Logger.getLogger(HbeHbwDistribution.class);
 
     private final Purpose purpose;
     private final MitoOccupationStatus mitoOccupationStatus;
@@ -59,7 +59,7 @@ public final class HbeHbwDistribution extends RandomizableConcurrentFunction<Voi
                 for (MitoTrip trip : household.getTripsForPurpose(purpose)) {
                     trip.setTripOrigin(household);
                     findDestination(household, trip);
-                    TripDistribution.distributedTripsCounter.incrementAndGet();
+                    MandatoryTripDistribution.distributedTripsCounter.incrementAndGet();
                 }
             }
             counter++;
@@ -71,7 +71,7 @@ public final class HbeHbwDistribution extends RandomizableConcurrentFunction<Voi
         if (isFixedByOccupation(trip)) {
             trip.setTripDestination(trip.getPerson().getOccupation());
         } else {
-            TripDistribution.randomOccupationDestinationTrips.incrementAndGet();
+            MandatoryTripDistribution.randomOccupationDestinationTrips.incrementAndGet();
             IndexedDoubleMatrix1D probabilities = baseProbabilities.viewRow(household.getHomeZone().getId());
             final int internalIndex = MitoUtil.select(probabilities.toNonIndexedArray(), random, probabilities.zSum());
             final MitoZone destination = zonesCopy.get(probabilities.getIdForInternalIndex(internalIndex));

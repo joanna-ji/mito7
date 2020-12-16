@@ -21,16 +21,13 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
     private final DataSet dataSet;
     private final Purpose purpose;
 
-    private double scaleFactorForGeneration;
-
     private final Map<String, Double> zeroCoef;
     private final Map<String, Double> countCoef;
 
-    protected TripsByPurposeGeneratorHurdleModel(DataSet dataSet, Purpose purpose, double scaleFactorForGeneration) {
+    protected TripsByPurposeGeneratorHurdleModel(DataSet dataSet, Purpose purpose) {
         super(MitoUtil.getRandomObject().nextLong());
         this.dataSet = dataSet;
         this.purpose = purpose;
-        this.scaleFactorForGeneration = scaleFactorForGeneration;
         this.zeroCoef =
                 new CoefficientReader(dataSet, purpose,
                         Resources.instance.getTripGenerationCoefficientsHurdleBinaryLogit()).readCoefficients();
@@ -49,13 +46,11 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
     public Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>> call() throws Exception {
         logger.info("  Generating trips for purpose " + purpose + " (multi-threaded)");
 
-        for (MitoPerson person : dataSet.getPersons().values()) {
-            if (MitoUtil.getRandomObject().nextDouble() < scaleFactorForGeneration) {
-                if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
-                    generateTripsForPerson(person, polrEstimateTrips(person));
-                } else {
-                    generateTripsForPerson(person, hurdleEstimateTrips(person));
-                }
+        for (MitoPerson person : dataSet.getMobilePersons().values()) {
+            if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
+                generateTripsForPerson(person, polrEstimateTrips(person));
+            } else {
+                generateTripsForPerson(person, hurdleEstimateTrips(person));
             }
         }
         return new Tuple<>(purpose, tripsByPP);

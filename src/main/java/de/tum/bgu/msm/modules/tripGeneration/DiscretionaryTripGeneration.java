@@ -50,7 +50,7 @@ public class DiscretionaryTripGeneration extends Module {
 
     private void generateRawTrips() {
         RawTripGenerator rawTripGenerator = new RawTripGenerator(dataSet, DISCRETIONARY_PURPOSES, tripsByPurposeGeneratorFactory);
-        rawTripGenerator.run(scaleFactorForTripGeneration);
+        rawTripGenerator.run();
     }
 
     private void generateAirportTrips(double scaleFactorForTripGeneration) {

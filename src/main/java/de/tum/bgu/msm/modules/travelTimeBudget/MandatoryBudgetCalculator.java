@@ -1,9 +1,6 @@
 package de.tum.bgu.msm.modules.travelTimeBudget;
 
-import de.tum.bgu.msm.data.MitoHousehold;
-import de.tum.bgu.msm.data.MitoOccupationStatus;
-import de.tum.bgu.msm.data.MitoTrip;
-import de.tum.bgu.msm.data.Purpose;
+import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
@@ -27,7 +24,7 @@ public class MandatoryBudgetCalculator implements Runnable {
     MandatoryBudgetCalculator(Collection<MitoHousehold> households, Purpose purpose, TravelTimes travelTimes, double timeOfDay) {
         this.households = households;
         this.purpose = purpose;
-        this.defaultBudget = Resources.instance.getDouble(Properties.DEFAULT_BUDGET + purpose, 30.) * 5;
+        this.defaultBudget = Resources.instance.getDouble(Properties.DEFAULT_BUDGET + purpose, 30.);
         this.travelTimes = travelTimes;
         this.timeOfDay = timeOfDay;
         if(purpose == Purpose.HBW) {
@@ -42,18 +39,23 @@ public class MandatoryBudgetCalculator implements Runnable {
     @Override
     public void run() {
         for (MitoHousehold household : households) {
-            double budget = 0;
-            for (MitoTrip trip : household.getTripsForPurpose(purpose)) {
-                if (specifiedByOccupation(trip)) {
-                    //Multiply by 2, as the budget should contain the return trip of home based trips as well
-                    budget += 2 * travelTimes.getTravelTime(household.getHomeZone(),
-                            trip.getPerson().getOccupation(), timeOfDay, TransportMode.car);
-                } else {
-                    budget += defaultBudget;
-                    defaultBudgeted ++;
+            double householdBudget = 0;
+            for (MitoPerson person : household.getPersons().values()) {
+                double personBudget = 0;
+                for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
+                    if (specifiedByOccupation(trip)) {
+                        //Multiply by 2, as the budget should contain the return trip of home based trips as well
+                        personBudget += 2 * travelTimes.getTravelTime(household.getHomeZone(),
+                                trip.getPerson().getOccupation(), timeOfDay, TransportMode.car);
+                    } else {
+                        personBudget += defaultBudget;
+                        defaultBudgeted ++;
+                    }
                 }
+                person.setTravelTimeBudgetByPurpose(purpose, personBudget);
+                householdBudget += personBudget;
             }
-            household.setTravelTimeBudgetByPurpose(purpose, budget);
+            household.setTravelTimeBudgetByPurpose(purpose, householdBudget);
         }
         if (defaultBudgeted > 0) {
             logger.warn("There have been " + defaultBudgeted + " " + purpose

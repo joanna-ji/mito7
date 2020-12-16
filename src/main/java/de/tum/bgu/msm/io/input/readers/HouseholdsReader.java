@@ -3,6 +3,7 @@ package de.tum.bgu.msm.io.input.readers;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.MitoHousehold;
 import de.tum.bgu.msm.io.input.AbstractCsvReader;
+import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import org.apache.log4j.Logger;
@@ -42,7 +43,12 @@ public class HouseholdsReader extends AbstractCsvReader {
     protected void processRecord(String[] record) {
         int id = Integer.parseInt(record[posId]);
         int autos = Integer.parseInt(record[posAutos]);
-        MitoHousehold hh = new MitoHousehold(id, 0, autos);
+
+        // is the household mobile (depends on scale factor)
+        double scaleFactorForTripGeneration = Resources.instance.getDouble(Properties.SCALE_FACTOR_FOR_TRIP_GENERATION, 1.0);
+        boolean isMobile = MitoUtil.getRandomObject().nextDouble() < scaleFactorForTripGeneration;
+
+        MitoHousehold hh = new MitoHousehold(id, 0, autos, isMobile);
         dataSet.addHousehold(hh);
     }
 }

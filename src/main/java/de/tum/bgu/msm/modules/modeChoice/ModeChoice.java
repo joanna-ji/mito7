@@ -4,15 +4,12 @@ import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.modules.Module;
-import de.tum.bgu.msm.modules.modeChoice.calculators.AirportModeChoiceCalculator;
-import de.tum.bgu.msm.modules.modeChoice.calculators.CalibratingModeChoiceCalculatorImpl;
-import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculatorImpl;
-import de.tum.bgu.msm.modules.modeChoice.calculators.av.AVModeChoiceCalculatorImpl;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import org.apache.log4j.Logger;
+import org.matsim.core.utils.collections.Tuple;
 
 import java.nio.file.Path;
 import java.util.EnumMap;
@@ -26,22 +23,24 @@ import static de.tum.bgu.msm.data.Purpose.*;
 
 public class ModeChoice extends Module {
 
+    private final static Logger logger = Logger.getLogger(ModeChoice.class);
     private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
     private final static EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,publicTransport,bicycle,walk);
-
-    private final static Logger logger = Logger.getLogger(ModeChoice.class);
     private final static Path modeChoiceCoefFolder = Resources.instance.getModeChoiceCoefficients();
-    private final Map<Purpose, Map<Mode, Map<String, Double>>> coefficients = new EnumMap<>(Purpose.class);
+
+    private final EnumMap<Purpose, EnumMap<Mode, Map<String, Double>>> allCoefficients = new EnumMap<>(Purpose.class);
 
     public ModeChoice(DataSet dataSet) {
         super(dataSet);
         for (Purpose purpose : PURPOSES) {
-            Map<Mode, Map<String, Double>> coefficientsByMode = new EnumMap<>(Mode.class);
+            EnumMap<Mode, Map<String, Double>> coefficientsByMode = new EnumMap<>(Mode.class);
             for (Mode mode : MODES) {
-                coefficientsByMode.put(mode, new CoefficientReader(dataSet, mode,
-                        modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
+                if(!(purpose.equals(RRT) & EnumSet.of(autoDriver,autoPassenger,publicTransport).contains(mode))) {
+                    coefficientsByMode.put(mode, new CoefficientReader(dataSet, mode,
+                            modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
+                }
             }
-            coefficients.put(purpose, coefficientsByMode);
+            allCoefficients.put(purpose, coefficientsByMode);
         }
     }
 
@@ -55,7 +54,7 @@ public class ModeChoice extends Module {
     private void modeChoiceByPurpose() {
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(Purpose.values().length);
         for (Purpose purpose : PURPOSES) {
-            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet, coefficients.get(purpose)));
+            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet, allCoefficients.get(purpose)));
         }
         executor.execute();
     }
@@ -94,25 +93,24 @@ public class ModeChoice extends Module {
 
         private final Purpose purpose;
         private final DataSet dataSet;
-        private final Map<Mode, Map<String, Double>> coefficients;
-        private final TravelTimes travelTimes;
+        private final LogitCalculator logitCalculator;
         private int countTripsSkipped;
 
-        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet, Map<Mode, Map<String, Double>> coefficients) {
+        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet, EnumMap<Mode, Map<String, Double>> coefficients) {
             super(MitoUtil.getRandomObject().nextLong());
             this.purpose = purpose;
             this.dataSet = dataSet;
-            this.coefficients = coefficients;
-            this.travelTimes = dataSet.getTravelTimes();
+            this.logitCalculator = new LogitCalculator(dataSet, coefficients);
         }
 
         @Override
         public Void call() {
+            logger.info("Mode choice for purpose " + purpose);
             countTripsSkipped = 0;
             try {
-                for (MitoPerson person : dataSet.getPersons().values()) {
+                for (MitoPerson person : dataSet.getMobilePersons().values()) {
                     for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
-                        chooseMode(trip, calculateProbabilities(calculateUtilities(person, trip)));
+                        chooseMode(trip, logitCalculator.getProbabilities(person, trip, determineAvailability(person)));
                     }
                 }
             } catch (Exception e) {
@@ -122,24 +120,14 @@ public class ModeChoice extends Module {
             return null;
         }
 
-        private EnumMap<Mode, Double> calculateUtilities(MitoPerson person, MitoTrip trip) {
-            EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
+        private EnumSet<Mode> determineAvailability(MitoPerson person) {
+            EnumSet<Mode> availability = person.getModeRestriction().getRestrictedModeSet();
 
-            for(Mode mode : MODES) {
-                utilities.put(mode, getResponse(person, trip, coefficients.get(mode)));
+            if(purpose.equals(RRT)) {
+                availability.removeAll(EnumSet.of(autoDriver, autoPassenger, publicTransport));
             }
 
-            return (utilities);
-        }
-
-        private double getResponse(MitoPerson person, MitoTrip trip, Map<String, Double> coefficients) {
-            return -1.;
-        }
-
-        private EnumMap<Mode, Double> calculateProbabilities(EnumMap<Mode, Double> utilities) {
-            EnumMap<Mode, Double> probabilities = new EnumMap(Mode.class);
-
-            return probabilities;
+            return availability;
         }
 
         private void chooseMode(MitoTrip trip, EnumMap<Mode, Double> probabilities) {
@@ -148,16 +136,15 @@ public class ModeChoice extends Module {
                 return;
             }
 
-            //found Nan when there is no transit!!
-            probabilities.replaceAll((mode, probability) ->
-                    probability.isNaN() ? 0: probability);
-
             double sum = MitoUtil.getSum(probabilities.values());
+            if (Math.abs(sum - 1) > 0.01) {
+                logger.warn("Mode probabilities don't add to 1 for trip " + trip.getId());
+            }
             if (sum > 0) {
                 final Mode select = MitoUtil.select(probabilities, random);
                 trip.setTripMode(select);
             } else {
-                logger.error("Negative probabilities for trip " + trip.getId());
+                logger.error("Zero/negative probabilities for trip " + trip.getId());
                 trip.setTripMode(null);
             }
         }

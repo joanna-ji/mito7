@@ -17,6 +17,7 @@ public class MitoHousehold implements Id, MicroLocation {
     private static final Logger logger = Logger.getLogger(MitoHousehold.class);
 
     private final int hhId;
+    private final boolean mobile;
     private int monthlyIncome_EUR;
     private int economicStatus;
     private final int autos;
@@ -24,21 +25,24 @@ public class MitoHousehold implements Id, MicroLocation {
     private Coordinate homeLocation;
 
     private final EnumMap<Purpose, List<MitoTrip>> tripsByPurpose = new EnumMap<>(Purpose.class);
-    private final EnumMap<Purpose, Double> travelTimeBudgetByPurpose= new EnumMap<>(Purpose.class);
+    private final EnumMap<Purpose, Double> travelTimeBudgetByPurpose = new EnumMap<>(Purpose.class);
     private double totalTravelTimeBudget = 0.;
 
     private final Map<Integer, MitoPerson> persons  = new HashMap<>();
 
-    public MitoHousehold(int id, int monthlyIncome_EUR, int autos) {
+    public MitoHousehold(int id, int monthlyIncome_EUR, int autos, boolean isMobile) {
         this.hhId = id;
         this.monthlyIncome_EUR = monthlyIncome_EUR;
         this.autos = autos;
+        this.mobile = isMobile;
     }
 
     @Override
     public int getId() {
         return hhId;
     }
+
+    public boolean isMobile() { return mobile; }
 
     public int getHhSize() {
         return persons.size();

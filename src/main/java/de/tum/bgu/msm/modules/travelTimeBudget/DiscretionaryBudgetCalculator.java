@@ -21,7 +21,7 @@ public class DiscretionaryBudgetCalculator implements Runnable {
 
     @Override
     public void run() {
-        for (MitoHousehold household : dataSet.getHouseholds().values()) {
+        for (MitoHousehold household : dataSet.getMobileHouseholds().values()) {
             double householdBudget = 0.;
             for(MitoPerson person : household.getPersons().values()) {
                 double personBudget = calculateBudget(person);

@@ -105,6 +105,10 @@ public class MitoPerson implements Id {
         }
     }
 
+    public synchronized void setTravelTimeBudgetByPurpose(Purpose purpose, double budget) {
+        this.travelTimeBudgetByPurpose.put(purpose, budget);
+    }
+
     public synchronized void setTravelTimeBudgetByPurpose(String purpose, double budget) {
         if(purpose.equals("Total")) {
             this.totalTravelTimeBudget = budget;

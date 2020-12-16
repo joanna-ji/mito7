@@ -12,7 +12,7 @@ import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
 import de.tum.bgu.msm.modules.scaling.TripScaling;
 import de.tum.bgu.msm.modules.timeOfDay.TimeOfDayChoice;
 import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.MandatoryTripDistribution;
 import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactorySampleEnumeration;
 import de.tum.bgu.msm.resources.Properties;
@@ -90,7 +90,7 @@ public final class TravelDemandGenerator {
             tripGeneration = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactorySampleEnumeration());
             personTripAssignment = new PersonTripAssignment(dataSet);
             travelTimeBudget = new MandatoryTravelTimeBudgetModule(dataSet);
-            distribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE,HBS,HBO,NHBW,NHBO));
+            distribution = new MandatoryTripDistribution(dataSet);
             modeChoice = new ModeChoice(dataSet);
             timeOfDayChoice = new TimeOfDayChoice(dataSet);
             tripScaling = new TripScaling(dataSet);

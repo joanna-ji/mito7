@@ -10,6 +10,7 @@ import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix2D;
 import org.matsim.api.core.v01.population.Population;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DataSet {
 
@@ -80,14 +81,14 @@ public class DataSet {
         }
     }
 
-    public void setRandomCycleOwnership() {
-        for (MitoPerson pp: this.getPersons().values()) {
-
-        }
-    }
-
     public Map<Integer, MitoPerson> getPersons() {
         return Collections.unmodifiableMap(persons);
+    }
+
+    public Map<Integer, MitoPerson> getMobilePersons() {
+        return persons.entrySet().stream()
+                .filter(person -> person.getValue().getHousehold().isMobile())
+                .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
     }
 
     public Map<Integer, MitoZone> getZones() {
@@ -96,6 +97,12 @@ public class DataSet {
 
     public Map<Integer, MitoHousehold> getHouseholds() {
         return Collections.unmodifiableMap(households);
+    }
+
+    public Map<Integer, MitoHousehold> getMobileHouseholds() {
+        return households.entrySet().stream()
+                .filter(household -> household.getValue().isMobile())
+                .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
     }
 
     public Map<Integer, MitoSchool> getSchools() {

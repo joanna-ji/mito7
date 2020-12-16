@@ -24,12 +24,10 @@ public class MandatoryTripGeneration extends Module {
     private static final Logger logger = Logger.getLogger(TravelDemandGenerator.class);
     private final EnumSet<Purpose> MANDATORY_PURPOSES = EnumSet.of(HBW, HBE);
 
-    private double scaleFactorForTripGeneration;
     private final TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory;
 
     public MandatoryTripGeneration(DataSet dataSet, TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory) {
         super(dataSet);
-        scaleFactorForTripGeneration = Resources.instance.getDouble(Properties.SCALE_FACTOR_FOR_TRIP_GENERATION, 1.0);
         this.tripsByPurposeGeneratorFactory = tripsByPurposeGeneratorFactory;
     }
 
@@ -44,7 +42,7 @@ public class MandatoryTripGeneration extends Module {
 
     private void generateRawTrips() {
         RawTripGenerator rawTripGenerator = new RawTripGenerator(dataSet, MANDATORY_PURPOSES, tripsByPurposeGeneratorFactory);
-        rawTripGenerator.run(scaleFactorForTripGeneration);
+        rawTripGenerator.run();
     }
 
     private void calculateAttractions() {

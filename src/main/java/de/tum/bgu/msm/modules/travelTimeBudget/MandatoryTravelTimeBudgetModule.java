@@ -35,8 +35,8 @@ public class MandatoryTravelTimeBudgetModule extends Module {
         logger.info("Started microscopic travel time budget calculation.");
         final ExecutorService service = Executors.newFixedThreadPool(Purpose.values().length);
         List<Future<?>> results = new ArrayList<>();
-        results.add(service.submit(new MandatoryBudgetCalculator(dataSet.getHouseholds().values(), Purpose.HBW, dataSet.getTravelTimes(), dataSet.getPeakHour())));
-        results.add(service.submit(new MandatoryBudgetCalculator(dataSet.getHouseholds().values(), Purpose.HBE, dataSet.getTravelTimes(), dataSet.getPeakHour())));
+        results.add(service.submit(new MandatoryBudgetCalculator(dataSet.getMobileHouseholds().values(), Purpose.HBW, dataSet.getTravelTimes(), dataSet.getPeakHour())));
+        results.add(service.submit(new MandatoryBudgetCalculator(dataSet.getMobileHouseholds().values(), Purpose.HBE, dataSet.getTravelTimes(), dataSet.getPeakHour())));
         service.shutdown();
         results.forEach(r -> {
             try {

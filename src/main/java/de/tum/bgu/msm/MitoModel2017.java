@@ -93,7 +93,6 @@ public final class MitoModel2017 {
         new TimeOfDayDistributionsReader(dataSet).read();
         new CalibrationDataReader(dataSet).read();
         new CalibrationRegionMapReader(dataSet).read();
-
     }
 
     private void printOutline(long startTime) {

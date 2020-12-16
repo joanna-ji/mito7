@@ -2,6 +2,7 @@ package de.tum.bgu.msm.modules.travelTimeBudget;
 
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.MitoHousehold;
+import de.tum.bgu.msm.data.MitoPerson;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.modules.Module;
 import org.apache.log4j.Logger;
@@ -50,8 +51,8 @@ public class DiscretionaryTravelTimeBudgetModule extends Module {
             }
         });
 
-        logger.info("  Adjusting travel time budgets.");
-        adjustDiscretionaryPurposeBudgets();
+//        logger.info("  Adjusting travel time budgets.");
+//        adjustDiscretionaryPurposeBudgets();
         logger.info("  Finished microscopic travel time budget calculation.");
 
     }
@@ -78,6 +79,22 @@ public class DiscretionaryTravelTimeBudgetModule extends Module {
                 }
             } catch (NullPointerException e) {
                 System.out.println("oops");
+            }
+        }
+    }
+
+    private void checkHouseholdTTB() {
+        logger.info("Checking person budgets add to household budgets");
+        for (Purpose purpose : discretionaryPurposes) {
+            for (MitoHousehold household : dataSet.getHouseholds().values()) {
+                double householdBudget = 0.;
+                for(MitoPerson person : household.getPersons().values()) {
+                    double personBudget = person.getTravelTimeBudgetForPurpose(purpose);
+                    householdBudget += personBudget;
+                }
+                if(householdBudget != household.getTravelTimeBudgetForPurpose(purpose)) {
+                    logger.error(purpose + " person budgets don't add to household budget for household " + household.getId());
+                }
             }
         }
     }

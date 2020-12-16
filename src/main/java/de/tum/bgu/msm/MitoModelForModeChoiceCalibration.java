@@ -11,7 +11,7 @@ import de.tum.bgu.msm.modules.modeChoice.calculators.CalibratingModeChoiceCalcul
 import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculatorImpl;
 import de.tum.bgu.msm.modules.personTripAssignment.PersonTripAssignment;
 import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.MandatoryTripDistribution;
 import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactorySampleEnumeration;
 import de.tum.bgu.msm.resources.Properties;
@@ -85,7 +85,7 @@ public final class MitoModelForModeChoiceCalibration {
         ttb.run();
 
         logger.info("Running Module: Microscopic Trip Distribution");
-        TripDistribution distribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE,HBS,HBO,NHBW,NHBO));
+        MandatoryTripDistribution distribution = new MandatoryTripDistribution(dataSet);
         distribution.run();
 
         ModeChoice modeChoice = new ModeChoice(dataSet);

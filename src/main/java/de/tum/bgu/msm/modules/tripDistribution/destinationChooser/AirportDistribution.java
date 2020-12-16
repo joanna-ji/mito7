@@ -2,7 +2,7 @@ package de.tum.bgu.msm.modules.tripDistribution.destinationChooser;
 
 import com.google.common.math.LongMath;
 import de.tum.bgu.msm.data.*;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.MandatoryTripDistribution;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
@@ -62,7 +62,7 @@ public class AirportDistribution extends RandomizableConcurrentFunction<Void> {
                         trip.setTripDestination(household.getHomeZone());
                     }
 
-                    TripDistribution.distributedTripsCounter.incrementAndGet();
+                    MandatoryTripDistribution.distributedTripsCounter.incrementAndGet();
                 }
             }
             counter++;

@@ -24,15 +24,13 @@ class TripsByPurposeGeneratorSampleEnumeration extends RandomizableConcurrentFun
     private final Purpose purpose;
 
     private final HouseholdTypeManager householdTypeManager;
-    private double scaleFactorForGeneration;
 
 
-    TripsByPurposeGeneratorSampleEnumeration(DataSet dataSet, Purpose purpose, double scaleFactorForGeneration) {
+    TripsByPurposeGeneratorSampleEnumeration(DataSet dataSet, Purpose purpose) {
         super(MitoUtil.getRandomObject().nextLong());
         this.dataSet = dataSet;
         this.purpose = purpose;
         householdTypeManager = new HouseholdTypeManager(purpose);
-        this.scaleFactorForGeneration = scaleFactorForGeneration;
     }
 
     @Override
@@ -40,18 +38,16 @@ class TripsByPurposeGeneratorSampleEnumeration extends RandomizableConcurrentFun
         logger.info("  Generating trips with purpose " + purpose + " (multi-threaded)");
         logger.info("Created trip frequency distributions for " + purpose);
         logger.info("Started assignment of trips for hh, purpose: " + purpose);
-        final Iterator<MitoHousehold> iterator = dataSet.getHouseholds().values().iterator();
+        final Iterator<MitoHousehold> iterator = dataSet.getMobileHouseholds().values().iterator();
         for (; iterator.hasNext(); ) {
             MitoHousehold next = iterator.next();
-            if (MitoUtil.getRandomObject().nextDouble() < scaleFactorForGeneration) {
-                generateTripsForHousehold(next, scaleFactorForGeneration);
-            }
+            generateTripsForHousehold(next);
         }
         return new Tuple<>(purpose, tripsByHH);
     }
 
 
-    private void generateTripsForHousehold(MitoHousehold hh, double scaleFactorForGeneration) {
+    private void generateTripsForHousehold(MitoHousehold hh) {
         HouseholdType hhType = householdTypeManager.determineHouseholdType(hh);
         if (hhType == null) {
             logger.error("Could not create trips for Household " + hh.getId() + " for Purpose " + purpose + ": No Household Type applicable");

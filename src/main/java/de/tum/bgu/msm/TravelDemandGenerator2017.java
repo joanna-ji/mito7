@@ -7,13 +7,15 @@ import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.modeChoice.DominantCommuteMode;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
+import de.tum.bgu.msm.modules.modeChoice.ModeRestrictionChoice;
 import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
 import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
 import de.tum.bgu.msm.modules.scaling.TripScaling;
 import de.tum.bgu.msm.modules.timeOfDay.TimeOfDayChoice;
 import de.tum.bgu.msm.modules.travelTimeBudget.DiscretionaryTravelTimeBudgetModule;
 import de.tum.bgu.msm.modules.travelTimeBudget.MandatoryTravelTimeBudgetModule;
-import de.tum.bgu.msm.modules.tripDistribution.TripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.DiscretionaryTripDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.MandatoryTripDistribution;
 import de.tum.bgu.msm.modules.tripGeneration.DiscretionaryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.MandatoryTripGeneration;
 import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactoryHurdle;
@@ -44,6 +46,7 @@ public final class TravelDemandGenerator2017 {
     private final Module discretionaryTripGeneration;
     private final Module discretionaryTravelTimeBudget;
     private final Module discretionaryTripDistribution;
+    private final Module modeRestriction;
     private final Module modeChoice;
     private final Module timeOfDayChoice;
     private final Module tripScaling;
@@ -59,6 +62,7 @@ public final class TravelDemandGenerator2017 {
             Module discretionaryTripGeneration,
             Module discretionaryTravelTimeBudget,
             Module discretionaryTripDistribution,
+            Module modeRestriction,
             Module modeChoice,
             Module timeOfDayChoice,
             Module tripScaling,
@@ -73,6 +77,7 @@ public final class TravelDemandGenerator2017 {
         this.discretionaryTripGeneration = discretionaryTripGeneration;
         this.discretionaryTravelTimeBudget = discretionaryTravelTimeBudget;
         this.discretionaryTripDistribution = discretionaryTripDistribution;
+        this.modeRestriction = modeRestriction;
         this.modeChoice = modeChoice;
         this.timeOfDayChoice = timeOfDayChoice;
         this.tripScaling = tripScaling;
@@ -92,6 +97,7 @@ public final class TravelDemandGenerator2017 {
         private Module discretionaryTripGeneration;
         private Module discretionaryTravelTimeBudget;
         private Module discretionaryTripDistribution;
+        private Module modeRestriction;
         private Module modeChoice;
         private Module timeOfDayChoice;
         private Module tripScaling;
@@ -102,11 +108,12 @@ public final class TravelDemandGenerator2017 {
             this.dataSet = dataSet;
             mandatoryTripGeneration = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
             mandatoryTravelTimeBudget = new MandatoryTravelTimeBudgetModule(dataSet);
-            mandatoryDistribution = new TripDistribution(dataSet, EnumSet.of(HBW,HBE));
+            mandatoryDistribution = new MandatoryTripDistribution(dataSet);
             dominantCommuteMode = new DominantCommuteMode(dataSet);
             discretionaryTripGeneration = new DiscretionaryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
             discretionaryTravelTimeBudget = new DiscretionaryTravelTimeBudgetModule(dataSet);
-            discretionaryTripDistribution = new TripDistribution(dataSet, EnumSet.of(HBS, HBR, HBO, RRT, NHBW, NHBO));
+            discretionaryTripDistribution = new DiscretionaryTripDistribution(dataSet);
+            modeRestriction = new ModeRestrictionChoice(dataSet);
             modeChoice = new ModeChoice(dataSet);
             timeOfDayChoice = new TimeOfDayChoice(dataSet);
             tripScaling = new TripScaling(dataSet);
@@ -125,6 +132,7 @@ public final class TravelDemandGenerator2017 {
                     discretionaryTripGeneration,
                     discretionaryTravelTimeBudget,
                     discretionaryTripDistribution,
+                    modeRestriction,
                     modeChoice,
                     timeOfDayChoice,
                     tripScaling,
@@ -158,6 +166,10 @@ public final class TravelDemandGenerator2017 {
 
         public void setDiscretionaryTripDistribution(Module discretionaryTripDistribution) {
             this.discretionaryTripDistribution = discretionaryTripDistribution;
+        }
+
+        public void setModeRestriction(Module modeRestriction) {
+            this.modeRestriction = modeRestriction;
         }
 
         public void setModeChoice(Module modeChoice) {
@@ -248,12 +260,15 @@ public final class TravelDemandGenerator2017 {
         logger.info("Running Module: Discretionary trip distribution");
         discretionaryTripDistribution.run();
 
-        SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
-        SummarizeData.writeOutTrips(dataSet, scenarioName);
-        System.exit(0);
+        logger.info("Running Module: Mode Restriction");
+        modeRestriction.run();
 
         logger.info("Running Module: Trip to Mode Assignment (Mode Choice)");
         modeChoice.run();
+
+        SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
+        SummarizeData.writeOutTrips(dataSet, scenarioName);
+        System.exit(0);
 
         logger.info("Running time of day choice");
         timeOfDayChoice.run();
