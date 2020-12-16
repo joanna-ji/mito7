@@ -56,7 +56,7 @@ public class DominantCommuteMode extends Module {
         public Void call() {
             nonCommuters = 0;
             try {
-                for (MitoPerson person : dataSet.getMobilePersons().values()) {
+                for (MitoPerson person : dataSet.getModelledPersons().values()) {
                     if (person.getTripsForPurpose(Purpose.HBW).size() + person.getTripsForPurpose(Purpose.HBE).size() == 0) {
                         nonCommuters++;
                     } else {

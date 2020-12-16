@@ -46,7 +46,7 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
     public Tuple<Purpose, Map<MitoPerson, List<MitoTrip>>> call() throws Exception {
         logger.info("  Generating trips for purpose " + purpose + " (multi-threaded)");
 
-        for (MitoPerson person : dataSet.getMobilePersons().values()) {
+        for (MitoPerson person : dataSet.getModelledPersons().values()) {
             if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
                 generateTripsForPerson(person, polrEstimateTrips(person));
             } else {
@@ -58,9 +58,9 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
 
     private int polrEstimateTrips (MitoPerson pp) {
         double randomNumber = random.nextDouble();
-        double binaryResponse = getResponse(pp, zeroCoef);
-        double phi = Math.exp(binaryResponse) / (1 + Math.exp(binaryResponse));
-        double mu = getResponse(pp, countCoef);
+        double binaryUtility = getPredictor(pp, zeroCoef);
+        double phi = Math.exp(binaryUtility) / (1 + Math.exp(binaryUtility));
+         double mu = getPredictor(pp, countCoef);
 
         double[] intercepts = new double[6];
         intercepts[0] = countCoef.get("1|2");
@@ -92,9 +92,9 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
 
     private int hurdleEstimateTrips(MitoPerson pp) {
         double randomNumber = random.nextDouble();
-        double binaryResponse = getResponse(pp, zeroCoef);
-        double phi = Math.exp(binaryResponse) / (1 + Math.exp(binaryResponse));
-        double mu = Math.exp(getResponse(pp, countCoef));
+        double binaryUtility = getPredictor(pp, zeroCoef);
+        double phi = Math.exp(binaryUtility) / (1 + Math.exp(binaryUtility));
+        double mu = Math.exp(getPredictor(pp, countCoef));
         double theta = countCoef.get("theta");
 
         NegativeBinomialDist nb = new NegativeBinomialDist(theta, theta / (theta + mu));
@@ -116,151 +116,151 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
         return(i);
     }
 
-    private double getResponse(MitoPerson pp, Map<String, Double> coefficients) {
+    private double getPredictor(MitoPerson pp, Map<String, Double> coefficients) {
         MitoHousehold hh = pp.getHousehold();
-        double response = 0.;
+        double predictor = 0.;
 
         // Intercept
-        response += coefficients.get("(Intercept)");
+        predictor += coefficients.get("(Intercept)");
 
         // Household size
         int householdSize = hh.getHhSize();
         if(householdSize == 1) {
-            response += coefficients.get("hh.size_1");
+            predictor += coefficients.get("hh.size_1");
         }
         else if(householdSize == 2) {
-            response += coefficients.get("hh.size_2");
+            predictor += coefficients.get("hh.size_2");
         }
         else if(householdSize == 3) {
-            response += coefficients.get("hh.size_3");
+            predictor += coefficients.get("hh.size_3");
         }
         else if(householdSize == 4) {
-            response += coefficients.get("hh.size_4");
+            predictor += coefficients.get("hh.size_4");
         }
         else  {
             assert(householdSize >= 5);
-            response += coefficients.get("hh.size_5");
+            predictor += coefficients.get("hh.size_5");
         }
 
         // Number of children in household
         int householdChildren = DataSet.getChildrenForHousehold(hh);
         if(householdChildren == 1) {
-            response += coefficients.get("hh.children_1");
+            predictor += coefficients.get("hh.children_1");
         }
         else if (householdChildren == 2) {
-            response += coefficients.get("hh.children_2");
+            predictor += coefficients.get("hh.children_2");
         }
         else if (householdChildren >= 3) {
-            response += coefficients.get("hh.children_3");
+            predictor += coefficients.get("hh.children_3");
         }
 
         // Household in urban region
         if(!(hh.getHomeZone().getAreaTypeR().equals(AreaTypes.RType.RURAL))) {
-            response += coefficients.get("hh.urban");
+            predictor += coefficients.get("hh.urban");
         }
 
         // Household autos
         int householdAutos = hh.getAutos();
         if(householdAutos == 1) {
-            response += coefficients.get("hh.cars_1");
+            predictor += coefficients.get("hh.cars_1");
         }
         else if(householdAutos == 2) {
-            response += coefficients.get("hh.cars_2");
+            predictor += coefficients.get("hh.cars_2");
         }
         else if(householdAutos >= 3) {
-            response += coefficients.get("hh.cars_3");
+            predictor += coefficients.get("hh.cars_3");
         }
 
         // Autos per adult
         int householdAdults = householdSize - householdChildren;
         double autosPerAdult = Math.min((double) hh.getAutos() / (double) householdAdults , 1.0);
-        response += autosPerAdult * coefficients.get("hh.autosPerAdult");
+        predictor += autosPerAdult * coefficients.get("hh.autosPerAdult");
 
         // Age
         int age = pp.getAge();
         if (age <= 18) {
-            response += coefficients.get("p.age_gr_1");
+            predictor += coefficients.get("p.age_gr_1");
         }
         else if (age <= 29) {
-            response += coefficients.get("p.age_gr_2");
+            predictor += coefficients.get("p.age_gr_2");
         }
         else if (age <= 49) {
-            response += coefficients.get("p.age_gr_3");
+            predictor += coefficients.get("p.age_gr_3");
         }
         else if (age <= 59) {
-            response += coefficients.get("p.age_gr_4");
+            predictor += coefficients.get("p.age_gr_4");
         }
         else if (age <= 69) {
-            response += coefficients.get("p.age_gr_5");
+            predictor += coefficients.get("p.age_gr_5");
         }
         else {
-            response += coefficients.get("p.age_gr_6");
+            predictor += coefficients.get("p.age_gr_6");
         }
 
         // Female
         if (pp.getMitoGender().equals(MitoGender.FEMALE)) {
-            response += coefficients.get("p.female");
+            predictor += coefficients.get("p.female");
         }
 
         // Has drivers Licence
         if (pp.hasDriversLicense()) {
-            response += coefficients.get("p.driversLicense");
+            predictor += coefficients.get("p.driversLicense");
         }
 
         // Has bicycle
         if (pp.hasBicycle()) {
-            response += coefficients.get("p.ownBicycle");
+            predictor += coefficients.get("p.ownBicycle");
         }
 
         // Mito occupation Status
         MitoOccupationStatus occupationStatus = pp.getMitoOccupationStatus();
         if (occupationStatus.equals(MitoOccupationStatus.STUDENT)) {
-            response += coefficients.get("p.occupationStatus_Student");
+            predictor += coefficients.get("p.occupationStatus_Student");
         } else if (occupationStatus.equals(MitoOccupationStatus.UNEMPLOYED)) {
-            response += coefficients.get("p.occupationStatus_Unemployed");
+            predictor += coefficients.get("p.occupationStatus_Unemployed");
         }
 
         // Number of work trips
         int workTrips = pp.getTripsForPurpose(Purpose.HBW).size();
         if (workTrips == 1) {
-            response += coefficients.get("p.workTrips_1");
+            predictor += coefficients.get("p.workTrips_1");
         } else if (workTrips == 2) {
-            response += coefficients.get("p.workTrips_2");
+            predictor += coefficients.get("p.workTrips_2");
         } else if (workTrips == 3) {
-            response += coefficients.get("p.workTrips_3");
+            predictor += coefficients.get("p.workTrips_3");
         } else if (workTrips == 4) {
-            response += coefficients.get("p.workTrips_4");
+            predictor += coefficients.get("p.workTrips_4");
         } else if (workTrips >= 5) {
-            response += coefficients.get("p.workTrips_5");
+            predictor += coefficients.get("p.workTrips_5");
         }
 
         // Number of education trips
         int eduTrips = pp.getTripsForPurpose(Purpose.HBE).size();
         if (eduTrips == 1) {
-            response += coefficients.get("p.eduTrips_1");
+            predictor += coefficients.get("p.eduTrips_1");
         } else if (eduTrips == 2) {
-            response += coefficients.get("p.eduTrips_2");
+            predictor += coefficients.get("p.eduTrips_2");
         } else if (eduTrips == 3) {
-            response += coefficients.get("p.eduTrips_3");
+            predictor += coefficients.get("p.eduTrips_3");
         } else if (eduTrips == 4) {
-            response += coefficients.get("p.eduTrips_4");
+            predictor += coefficients.get("p.eduTrips_4");
         } else if (eduTrips >= 5) {
-            response += coefficients.get("p.eduTrips_5");
+            predictor += coefficients.get("p.eduTrips_5");
         }
 
         // Usual commute mode
         Mode dominantCommuteMode = pp.getDominantCommuteMode();
         if(dominantCommuteMode != null) {
             if (dominantCommuteMode.equals(Mode.autoDriver)) {
-                response += coefficients.get("p.usualCommuteMode_carD");
+                predictor += coefficients.get("p.usualCommuteMode_carD");
             } else if (dominantCommuteMode.equals(Mode.autoPassenger)) {
-                response += coefficients.get("p.usualCommuteMode_carP");
+                predictor += coefficients.get("p.usualCommuteMode_carP");
             } else if (dominantCommuteMode.equals(Mode.publicTransport)) {
-                response += coefficients.get("p.usualCommuteMode_PT");
+                predictor += coefficients.get("p.usualCommuteMode_PT");
             } else if (dominantCommuteMode.equals(Mode.bicycle)) {
-                response += coefficients.get("p.usualCommuteMode_cycle");
+                predictor += coefficients.get("p.usualCommuteMode_cycle");
             } else if (dominantCommuteMode.equals(Mode.walk)) {
-                response += coefficients.get("p.usualCommuteMode_walk");
+                predictor += coefficients.get("p.usualCommuteMode_walk");
             }
         }
 
@@ -273,11 +273,11 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
                 logger.info("Commute distance from zone " + homeZoneId + " to zone " + occupationZoneId + "is Zero");
                 commuteDistance = 0.25;
             }
-            response += Math.log(commuteDistance) * coefficients.get("p.m_mode_km_T");
+            predictor += Math.log(commuteDistance) * coefficients.get("p.m_mode_km_T");
         }
 
 
-        return response;
+        return predictor;
     }
 
     private void generateTripsForPerson(MitoPerson pp, int numberOfTrips) {

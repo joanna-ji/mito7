@@ -38,7 +38,7 @@ class TripsByPurposeGeneratorSampleEnumeration extends RandomizableConcurrentFun
         logger.info("  Generating trips with purpose " + purpose + " (multi-threaded)");
         logger.info("Created trip frequency distributions for " + purpose);
         logger.info("Started assignment of trips for hh, purpose: " + purpose);
-        final Iterator<MitoHousehold> iterator = dataSet.getMobileHouseholds().values().iterator();
+        final Iterator<MitoHousehold> iterator = dataSet.getModelledHouseholds().values().iterator();
         for (; iterator.hasNext(); ) {
             MitoHousehold next = iterator.next();
             generateTripsForHousehold(next);

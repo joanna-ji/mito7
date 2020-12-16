@@ -7,7 +7,6 @@ import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
-import org.apache.commons.math3.analysis.function.Logit;
 import org.apache.log4j.Logger;
 
 import java.nio.file.Path;
@@ -60,7 +59,7 @@ public class ModeRestrictionChoice extends Module {
         public Void call() {
             nonMobilePersons = 0;
             try {
-                for (MitoPerson person : dataSet.getMobilePersons().values()) {
+                for (MitoPerson person : dataSet.getModelledPersons().values()) {
                     if(person.getTrips().size() == 0) {
                         nonMobilePersons++;
                     } else {

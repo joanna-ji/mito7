@@ -20,6 +20,8 @@ public class HouseholdsReader extends AbstractCsvReader {
     private int posAutos = -1;
 
     private static final Logger logger = Logger.getLogger(HouseholdsReader.class);
+    private static final double scaleFactorForTripGeneration = Resources.instance.getDouble(Properties.SCALE_FACTOR_FOR_TRIP_GENERATION, 1.0);
+
 
     public HouseholdsReader(DataSet dataSet) {
         super(dataSet);
@@ -44,11 +46,10 @@ public class HouseholdsReader extends AbstractCsvReader {
         int id = Integer.parseInt(record[posId]);
         int autos = Integer.parseInt(record[posAutos]);
 
-        // is the household mobile (depends on scale factor)
-        double scaleFactorForTripGeneration = Resources.instance.getDouble(Properties.SCALE_FACTOR_FOR_TRIP_GENERATION, 1.0);
-        boolean isMobile = MitoUtil.getRandomObject().nextDouble() < scaleFactorForTripGeneration;
+        // is the household modelled? (depends on scale factor)
+        boolean isModelled = MitoUtil.getRandomObject().nextDouble() < scaleFactorForTripGeneration;
 
-        MitoHousehold hh = new MitoHousehold(id, 0, autos, isMobile);
+        MitoHousehold hh = new MitoHousehold(id, 0, autos, isModelled);
         dataSet.addHousehold(hh);
     }
 }

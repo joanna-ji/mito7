@@ -63,7 +63,7 @@ public final class MandatoryTripDistribution extends Module {
         final int numberOfThreads = Runtime.getRuntime().availableProcessors();
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(numberOfThreads);
 
-        final Collection<MitoHousehold> households = dataSet.getMobileHouseholds().values();
+        final Collection<MitoHousehold> households = dataSet.getModelledHouseholds().values();
         final int partitionSize = (int) ((double) households.size() / (numberOfThreads)) + 1;
         Iterable<List<MitoHousehold>> partitions = Iterables.partition(households, partitionSize);
 

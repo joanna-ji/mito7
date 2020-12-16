@@ -85,9 +85,9 @@ public class DataSet {
         return Collections.unmodifiableMap(persons);
     }
 
-    public Map<Integer, MitoPerson> getMobilePersons() {
+    public Map<Integer, MitoPerson> getModelledPersons() {
         return persons.entrySet().stream()
-                .filter(person -> person.getValue().getHousehold().isMobile())
+                .filter(person -> person.getValue().getHousehold().isModelled())
                 .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
     }
 
@@ -99,9 +99,9 @@ public class DataSet {
         return Collections.unmodifiableMap(households);
     }
 
-    public Map<Integer, MitoHousehold> getMobileHouseholds() {
+    public Map<Integer, MitoHousehold> getModelledHouseholds() {
         return households.entrySet().stream()
-                .filter(household -> household.getValue().isMobile())
+                .filter(household -> household.getValue().isModelled())
                 .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
     }
 

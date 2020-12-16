@@ -67,7 +67,7 @@ public final class DiscretionaryTripDistribution extends Module {
 
     private void distributeTrips() {
         final int numberOfThreads = Runtime.getRuntime().availableProcessors();
-        final Collection<MitoHousehold> households = dataSet.getMobileHouseholds().values();
+        final Collection<MitoHousehold> households = dataSet.getModelledHouseholds().values();
 
         final int partitionSize = (int) ((double) households.size() / (numberOfThreads)) + 1;
         Iterable<List<MitoHousehold>> partitions = Iterables.partition(households, partitionSize);

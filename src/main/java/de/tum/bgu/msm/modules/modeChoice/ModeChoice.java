@@ -1,7 +1,6 @@
 package de.tum.bgu.msm.modules.modeChoice;
 
 import de.tum.bgu.msm.data.*;
-import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.resources.Resources;
@@ -9,7 +8,6 @@ import de.tum.bgu.msm.util.MitoUtil;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.concurrent.RandomizableConcurrentFunction;
 import org.apache.log4j.Logger;
-import org.matsim.core.utils.collections.Tuple;
 
 import java.nio.file.Path;
 import java.util.EnumMap;
@@ -108,7 +106,7 @@ public class ModeChoice extends Module {
             logger.info("Mode choice for purpose " + purpose);
             countTripsSkipped = 0;
             try {
-                for (MitoPerson person : dataSet.getMobilePersons().values()) {
+                for (MitoPerson person : dataSet.getModelledPersons().values()) {
                     for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
                         chooseMode(trip, logitCalculator.getProbabilities(person, trip, determineAvailability(person)));
                     }

@@ -30,7 +30,7 @@ public class SummarizeData {
         LOGGER.info("  Writing household file");
         Path filehh = Resources.instance.getOutputHouseholdPath();
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(filehh.toAbsolutePath().toString(), false);
-        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.isMobile,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban," +
+        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.isModelled,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban," +
                 "hh.TTB,hh.TTB_HBW,hh.TTB_HBE,hh.TTB_HBS,hh.TTB_HBR,hh.TTB_HBO,hh.TTB_RRT,hh.TTB_NHBW,hh.TTB_NHBO");
         for (MitoHousehold hh : dataSet.getHouseholds().values()) {
             final MitoZone homeZone = hh.getHomeZone();
@@ -46,7 +46,7 @@ public class SummarizeData {
             pwh.print(",");
             pwh.print(hh.getHomeLocation().y);
             pwh.print(",");
-            pwh.print(hh.isMobile() ? 1 : 0);
+            pwh.print(hh.isModelled() ? 1 : 0);
             pwh.print(",");
             pwh.print(hh.getHhSize());
             pwh.print(",");
