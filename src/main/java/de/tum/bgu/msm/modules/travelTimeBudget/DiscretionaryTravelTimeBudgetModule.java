@@ -51,30 +51,32 @@ public class DiscretionaryTravelTimeBudgetModule extends Module {
             }
         });
 
-//        logger.info("  Adjusting travel time budgets.");
-//        adjustDiscretionaryPurposeBudgets();
+        logger.info("  Adjusting travel time budgets.");
+        adjustDiscretionaryPurposeBudgets();
         logger.info("  Finished microscopic travel time budget calculation.");
 
     }
 
     private void adjustDiscretionaryPurposeBudgets() {
 
-        for (MitoHousehold household : dataSet.getHouseholds().values()) {
+        for (MitoPerson person : dataSet.getPersons().values()) {
             try {
-                double totalTravelTimeBudget = household.getTotalTravelTimeBudget();
-                double discretionaryTTB = totalTravelTimeBudget - household.getTravelTimeBudgetForPurpose(Purpose.HBW) -
-                        household.getTravelTimeBudgetForPurpose(Purpose.HBE);
+                double totalTravelTimeBudget = person.getTotalTravelTimeBudget();
+                double discretionaryTTB = totalTravelTimeBudget - person.getTravelTimeBudgetForPurpose(Purpose.HBW) -
+                        person.getTravelTimeBudgetForPurpose(Purpose.HBE);
                 discretionaryTTB = Math.max(discretionaryTTB, 0);
 
                 double calcDiscretionaryTTB = 0;
                 for (Purpose purpose : discretionaryPurposes) {
-                    calcDiscretionaryTTB += household.getTravelTimeBudgetForPurpose(purpose);
+                    calcDiscretionaryTTB += person.getTravelTimeBudgetForPurpose(purpose);
                 }
-                for (Purpose purpose : discretionaryPurposes) {
-                    double budget = household.getTravelTimeBudgetForPurpose(purpose);
-                    if (budget != 0) {
-                        budget = budget * discretionaryTTB / calcDiscretionaryTTB;
-                        household.setTravelTimeBudgetByPurpose(purpose, budget);
+                if(calcDiscretionaryTTB > 0) {
+                    for (Purpose purpose : discretionaryPurposes) {
+                        double budget = person.getTravelTimeBudgetForPurpose(purpose);
+                        if (budget != 0) {
+                            budget *= (1 + discretionaryTTB / calcDiscretionaryTTB) / 2 ;
+                            person.setTravelTimeBudgetByPurpose(purpose, budget);
+                        }
                     }
                 }
             } catch (NullPointerException e) {

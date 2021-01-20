@@ -95,7 +95,7 @@ public final class DiscretionaryTripDistribution extends Module {
 
         for (final List<MitoHousehold> partition : partitions) {
             rrtTasks.add(RrtDistribution.rrt(utilityMatrices, partition, dataSet.getZones(),
-                    dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                    dataSet.getTravelDistancesNMT()));
         }
         executor.submitTasksAndWaitForCompletion(rrtTasks);
 
