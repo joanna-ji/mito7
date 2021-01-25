@@ -81,11 +81,11 @@ public final class DiscretionaryTripDistribution extends Module {
         List<Callable<Void>> homeBasedTasks = new ArrayList<>();
         for (final List<MitoHousehold> partition : partitions) {
             homeBasedTasks.add(HbsHbrHboDistribution.hbs(utilityMatrices.get(HBS), partition, dataSet.getZones(),
-                        dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                        dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
             homeBasedTasks.add(HbsHbrHboDistribution.hbr(utilityMatrices.get(HBR), partition, dataSet.getZones(),
-                        dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                        dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
             homeBasedTasks.add(HbsHbrHboDistribution.hbo(utilityMatrices.get(HBO), partition, dataSet.getZones(),
-                        dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                        dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
         }
         executor.submitTasksAndWaitForCompletion(homeBasedTasks);
 
@@ -105,9 +105,9 @@ public final class DiscretionaryTripDistribution extends Module {
 
         for (final List<MitoHousehold> partition : partitions) {
             nonHomeBasedTasks.add(NhbwNhboDistribution.nhbw(utilityMatrices, partition, dataSet.getZones(),
-                        dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                        dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
             nonHomeBasedTasks.add(NhbwNhboDistribution.nhbo(utilityMatrices, partition, dataSet.getZones(),
-                        dataSet.getTravelTimes(), dataSet.getPeakHour()));
+                        dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
         }
         if (DISCRETIONARY_PURPOSES.contains(Purpose.AIRPORT)) {
             nonHomeBasedTasks.add(AirportDistribution.airportDistribution(dataSet));

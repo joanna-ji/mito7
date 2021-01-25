@@ -23,11 +23,12 @@ import static de.tum.bgu.msm.data.Purpose.*;
  */
 public final class RrtDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static double VARIANCE_DOUBLED = 500 * 2;
+    private final static double VARIANCE_DOUBLED = 5000 * 2;
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
-    private final static double KM_TO_MIN = 60 / 4.732784;
 
     private final static Logger logger = Logger.getLogger(RrtDistribution.class);
+
+    private final double speedInv;
 
     private final List<Purpose> priorPurposes;
     private final EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities;
@@ -44,20 +45,21 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
     private RrtDistribution(List<Purpose> priorPurposes,
                             EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities,
                             Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                            TravelDistances travelDistances) {
+                            TravelDistances travelDistances, double speedInv) {
         super(MitoUtil.getRandomObject().nextLong());
         this.priorPurposes = priorPurposes;
         this.baseProbabilities = baseProbabilities;
         this.zonesCopy = new HashMap<>(zones);
         this.travelDistances = travelDistances;
         this.householdPartition = householdPartition;
+        this.speedInv = speedInv;
     }
 
     public static RrtDistribution rrt(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,
                                       Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
                                       TravelDistances travelDistances) {
         return new RrtDistribution(ImmutableList.of(HBW, HBE, HBS, HBR, HBO),
-                baseProbabilites, householdPartition, zones, travelDistances);
+                baseProbabilites, householdPartition, zones, travelDistances, 60 / 4.732784);
     }
 
     @Override
@@ -136,7 +138,7 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
         double[] baseProbs = row.toNonIndexedArray();
         IntStream.range(0, baseProbs.length).parallel().forEach(i -> {
             //divide travel time by 2 as home based trips' budget account for the return trip as well
-            double diff = travelDistances.getTravelDistance(zonesCopy.get(origin).getId(), zonesCopy.get(row.getIdForInternalIndex(i)).getId()) * KM_TO_MIN - mean;
+            double diff = travelDistances.getTravelDistance(zonesCopy.get(origin).getId(), zonesCopy.get(row.getIdForInternalIndex(i)).getId()) * speedInv - mean;
             double factor = SQRT_INV * FastMath.exp(-(diff * diff) / VARIANCE_DOUBLED);
             baseProbs[i] = baseProbs[i] * factor;
         });
@@ -147,7 +149,7 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
 
     private void postProcessTrip(MitoTrip trip) {
         actualBudgetSum += travelDistances.getTravelDistance(trip.getTripOrigin().getZoneId(),
-                trip.getTripDestination().getZoneId()) * KM_TO_MIN;
+                trip.getTripDestination().getZoneId()) * speedInv;
         idealBudgetSum += personBudgetPerTrip;
     }
 }

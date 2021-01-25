@@ -3,6 +3,7 @@ package de.tum.bgu.msm.modules.tripDistribution.destinationChooser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
 import de.tum.bgu.msm.data.*;
+import de.tum.bgu.msm.data.travelDistances.TravelDistances;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.modules.tripDistribution.DiscretionaryTripDistribution;
 import de.tum.bgu.msm.util.MitoUtil;
@@ -22,7 +23,7 @@ import static de.tum.bgu.msm.data.Purpose.*;
  */
 public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static double VARIANCE_DOUBLED = 500 * 2;
+    private final static double VARIANCE_DOUBLED = 5000 * 2;
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
     private final static Logger logger = Logger.getLogger(NhbwNhboDistribution.class);
@@ -30,11 +31,11 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
     private final Purpose purpose;
     private final List<Purpose> priorPurposes;
     private final double peakHour;
-    private final double travelTimeFactor;
+    private final double speedInv;
 
     private final MitoOccupationStatus relatedMitoOccupationStatus;
     private final EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities;
-    private final TravelTimes travelTimes;
+    private final TravelDistances travelDistances;
 
     private final Collection<MitoHousehold> householdPartition;
     private final Map<Integer, MitoZone> zonesCopy;
@@ -46,29 +47,29 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
 
     private NhbwNhboDistribution(Purpose purpose, List<Purpose> priorPurposes, MitoOccupationStatus relatedMitoOccupationStatus,
                                  EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilities,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                 TravelTimes travelTimes, double peakHour, double travelTimeFactor) {
+                                 TravelDistances travelDistances, double peakHour, double speedInv) {
         super(MitoUtil.getRandomObject().nextLong());
         this.purpose = purpose;
         this.priorPurposes = priorPurposes;
         this.relatedMitoOccupationStatus = relatedMitoOccupationStatus;
         this.baseProbabilities = baseProbabilities;
         this.zonesCopy = new HashMap<>(zones);
-        this.travelTimes = travelTimes;
+        this.travelDistances = travelDistances;
         this.peakHour = peakHour;
         this.householdPartition = householdPartition;
-        this.travelTimeFactor = travelTimeFactor;
+        this.speedInv = speedInv;
     }
 
     public static NhbwNhboDistribution nhbw(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                            TravelTimes travelTimes, double peakHour) {
+                                            TravelDistances travelDistances, double peakHour) {
         return new NhbwNhboDistribution(Purpose.NHBW, Collections.singletonList(HBW),
-                MitoOccupationStatus.WORKER, baseProbabilites, householdPartition, zones, travelTimes, peakHour,1.315);
+                MitoOccupationStatus.WORKER, baseProbabilites, householdPartition, zones, travelDistances, peakHour,60/26.439);
     }
 
     public static NhbwNhboDistribution nhbo(EnumMap<Purpose, IndexedDoubleMatrix2D> baseProbabilites,  Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                            TravelTimes travelTimes, double peakHour) {
+                                            TravelDistances travelDistances, double peakHour) {
         return new NhbwNhboDistribution(Purpose.NHBO, ImmutableList.of(HBO, HBE, HBS, HBR),
-                null, baseProbabilites, householdPartition, zones, travelTimes, peakHour,1.277);
+                null, baseProbabilites, householdPartition, zones, travelDistances, peakHour,60/22.794);
     }
 
     @Override
@@ -148,7 +149,7 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
         double[] baseProbs = row.toNonIndexedArray();
         IntStream.range(0, baseProbs.length).parallel().forEach(i -> {
             //divide travel time by 2 as home based trips' budget account for the return trip as well
-            double diff = travelTimes.getTravelTime(zonesCopy.get(origin), zonesCopy.get(row.getIdForInternalIndex(i)), peakHour, "car") * travelTimeFactor - mean;
+            double diff = travelDistances.getTravelDistance(zonesCopy.get(origin).getId(), zonesCopy.get(row.getIdForInternalIndex(i)).getId()) * speedInv - mean;
             double factor = SQRT_INV * FastMath.exp(-(diff * diff) / VARIANCE_DOUBLED);
             baseProbs[i] = baseProbs[i] * factor;
         });
@@ -171,8 +172,8 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
     }
 
     private void postProcessTrip(MitoTrip trip) {
-        actualBudgetSum += travelTimes.getTravelTime(trip.getTripOrigin(),
-                trip.getTripDestination(), peakHour, "car") * travelTimeFactor;
+        actualBudgetSum += travelDistances.getTravelDistance(trip.getTripOrigin().getZoneId(),
+                trip.getTripDestination().getZoneId()) * speedInv;
         idealBudgetSum += personBudgetPerTrip;
     }
 }
