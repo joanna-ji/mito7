@@ -23,7 +23,7 @@ import static de.tum.bgu.msm.data.Purpose.*;
  */
 public final class RrtDistribution extends RandomizableConcurrentFunction<Void> {
 
-    private final static double VARIANCE_DOUBLED = 5000 * 2;
+    private final static double VARIANCE_DOUBLED = 30 * 2;
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
     private final static Logger logger = Logger.getLogger(RrtDistribution.class);

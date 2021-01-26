@@ -4,7 +4,7 @@ import de.tum.bgu.msm.data.Purpose;
 
 public class DestinationUtilityCalculatorImpl implements DestinationUtilityCalculator {
 
-    private final static double TRAVEL_DISTANCE_PARAM_HBS = -0.045;
+    private final static double TRAVEL_DISTANCE_PARAM_HBS = -0.0355;
     private final static double IMPEDANCE_PARAM_HBS = 14.5;
 
     private final static double TRAVEL_DISTANCE_PARAM_HBO = -0.062;
@@ -70,7 +70,7 @@ public class DestinationUtilityCalculatorImpl implements DestinationUtilityCalcu
         if(attraction == 0) {
             return 0.;
         }
-        double impedance = impedanceParam * Math.exp(distanceParam * travelDistance); // Beta = impedance param = importance of impedance
-        return Math.exp(impedance) * attraction;                                      // distance param = decay of impedance
+        double impedance = impedanceParam * Math.exp(distanceParam * travelDistance);
+        return Math.exp(impedance) * attraction;
     }
 }
