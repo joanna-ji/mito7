@@ -20,6 +20,7 @@ public class MitoTrip implements Id {
 
     private Mode tripMode;
 
+    private Day departureDay;
     private int departureInMinutes;
     private int departureInMinutesReturnTrip = -1;
 
@@ -71,6 +72,10 @@ public class MitoTrip implements Id {
         this.tripMode = tripMode;
     }
 
+    public void setDepartureDay(Day departureDay) {
+        this.departureDay = departureDay;
+    }
+
     public void setDepartureInMinutes(int departureInMinutes) {
         this.departureInMinutes = departureInMinutes;
     }
@@ -79,7 +84,11 @@ public class MitoTrip implements Id {
         this.departureInMinutesReturnTrip = departureInMinutesReturnTrip;
     }
 
-    public int getDepartureInMinutes() {
+    public Day getDepartureDay() {
+        return departureDay;
+    }
+
+    public int getDepartureTimeInMinutes() {
         return departureInMinutes;
     }
 
@@ -100,7 +109,8 @@ public class MitoTrip implements Id {
     }
 
     public boolean isHomeBased() {
-        return !this.getTripPurpose().equals(Purpose.NHBW) &&
+        return  !this.getTripPurpose().equals(Purpose.RRT) &&
+                !this.getTripPurpose().equals(Purpose.NHBW) &&
                 !this.getTripPurpose().equals(Purpose.NHBO) &&
                 !this.getTripPurpose().equals(Purpose.AIRPORT);
     }

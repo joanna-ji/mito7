@@ -260,10 +260,6 @@ public final class TravelDemandGenerator2017 {
         logger.info("Running Module: Discretionary trip distribution");
         discretionaryTripDistribution.run();
 
-        SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
-        SummarizeData.writeOutTrips(dataSet, scenarioName);
-        System.exit(0);
-
         logger.info("Running Module: Mode Restriction");
         modeRestriction.run();
 
@@ -272,6 +268,10 @@ public final class TravelDemandGenerator2017 {
 
         logger.info("Running time of day choice");
         timeOfDayChoice.run();
+
+        SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
+        SummarizeData.writeOutTrips(dataSet, scenarioName);
+        System.exit(0);
 
         logger.info("Running trip scaling");
         tripScaling.run();

@@ -90,6 +90,7 @@ public final class MitoModel2017 {
         new TripAttractionRatesReader(dataSet).read();
         new ModeChoiceInputReader(dataSet).read();
         dataSet.setEconomicStatuses();
+        new DayProbabilitiesReader(dataSet).read();
         new TimeOfDayDistributionsReader(dataSet).read();
         new CalibrationDataReader(dataSet).read();
         new CalibrationRegionMapReader(dataSet).read();

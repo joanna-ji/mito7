@@ -132,6 +132,10 @@ public class Resources {
         return baseDirectory.resolve(EXTERNAL_DEPARTURE_TIME_FILE);
     }
 
+    public Path getDayProbabilitiesFilePath() {
+        return baseDirectory.resolve(getString(DAY_OF_WEEK_PROBABILITIES));
+    }
+
     public Path getTimeOfDayDistributionsFilePath() {
         return baseDirectory.resolve(getString(TIME_OF_DAY_DISTRIBUTIONS));
     }

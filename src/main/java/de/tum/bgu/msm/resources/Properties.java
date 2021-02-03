@@ -51,6 +51,7 @@ public class Properties {
     public static final String FILL_MICRO_DATA_WITH_MICROLOCATION = "micro.data.with.microlocation";
 
     public static final String RUN_TIME_OF_DAY_CHOICE = "run.time.of.day.choice";
+    public static final String DAY_OF_WEEK_PROBABILITIES = "day.of.week.probabilities.file";
     public static final String TIME_OF_DAY_DISTRIBUTIONS = "time.of.day.distribution.file";
 
     public static final String RUN_TRIP_SCALING = "run.trip.scaling";

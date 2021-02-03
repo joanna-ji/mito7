@@ -68,7 +68,7 @@ public final class MatsimPopulationGenerator extends Module {
                     }
 
                     Activity originActivity = factory.createActivityFromCoord(activityTypeAtOrigin, originCoord);
-                    originActivity.setEndTime(trip.getDepartureInMinutes() * 60 + MitoUtil.getRandomObject().nextDouble() * 60);
+                    originActivity.setEndTime(trip.getDepartureTimeInMinutes() * 60 + MitoUtil.getRandomObject().nextDouble() * 60);
                     plan.addActivity(originActivity);
 
                     plan.addLeg(factory.createLeg(Mode.getMatsimMode(trip.getTripMode())));

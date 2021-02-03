@@ -37,6 +37,7 @@ public class DataSet {
 
     private int year;
 
+    private EnumMap<Purpose, EnumMap<Day, Double>> departureDayProbabilitiesByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> arrivalMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> durationMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> departureMinuteCumProbByPurpose;
@@ -239,6 +240,14 @@ public class DataSet {
 
     public void setYear(int year){
         this.year = year;
+    }
+
+    public EnumMap<Purpose, EnumMap<Day, Double>> getDepartureDayProbabilitiesByPurpose() {
+        return departureDayProbabilitiesByPurpose;
+    }
+
+    public void setDepartureDayProbabilitiesByPurpose(EnumMap<Purpose, EnumMap<Day, Double>> departureDayProbabilitiesByPurpose) {
+        this.departureDayProbabilitiesByPurpose = departureDayProbabilitiesByPurpose;
     }
 
     public EnumMap<Purpose, DoubleMatrix1D> getArrivalMinuteCumProbByPurpose() {

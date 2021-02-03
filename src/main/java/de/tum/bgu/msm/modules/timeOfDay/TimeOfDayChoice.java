@@ -16,6 +16,7 @@ public final class TimeOfDayChoice extends Module {
 
     private static final Logger logger = Logger.getLogger(TimeOfDayChoice.class);
 
+    private EnumMap<Purpose, EnumMap<Day, Double>> dayProbabilitiesByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> arrivalMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> durationMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> departureMinuteCumProbByPurpose;
@@ -32,12 +33,13 @@ public final class TimeOfDayChoice extends Module {
 
     @Override
     public void run() {
+        dayProbabilitiesByPurpose = dataSet.getDepartureDayProbabilitiesByPurpose();
         arrivalMinuteCumProbByPurpose = dataSet.getArrivalMinuteCumProbByPurpose();
         durationMinuteCumProbByPurpose = dataSet.getDurationMinuteCumProbByPurpose();
         departureMinuteCumProbByPurpose = dataSet.getDepartureMinuteCumProbByPurpose();
 
         chooseDepartureTimes();
-        logger.info("Time of day choice completed");
+        logger.info("Time of day and week choice completed");
 
     }
 
@@ -45,36 +47,42 @@ public final class TimeOfDayChoice extends Module {
 
         dataSet.getTrips().values().forEach(trip -> {
 
-                    if (trip.getTripOrigin() != null && trip.getTripDestination() != null
-                            && trip.getTripMode() != null) {
-                        int departureTimeInMinutes;
-                        if (trip.getTripPurpose().equals(Purpose.AIRPORT) &&
-                                trip.getTripOrigin().equals(dataSet.getZones().get(Resources.instance.getInt(Properties.AIRPORT_ZONE)))){
-                            departureTimeInMinutes = chooseDepartureTime(trip);
-                        } else {
-                            int arrivalTimeInMinutes = chooseArrivalTime(trip);
-                           departureTimeInMinutes = arrivalTimeInMinutes - (int) estimateTravelTimeForDeparture(trip, arrivalTimeInMinutes);
-                        }
-                        //if departure is before midnight
-                        if (departureTimeInMinutes < 0) {
-                            departureTimeInMinutes = departureTimeInMinutes + 24 * 60;
-                        }
-                        trip.setDepartureInMinutes(departureTimeInMinutes);
-                        if (trip.isHomeBased()) {
-                            trip.setDepartureInMinutesReturnTrip(chooseDepartureTimeForReturnTrip(trip, departureTimeInMinutes));
-                        }
+            // choose day of week
+            trip.setDepartureDay(chooseDepartureDay(trip));
 
-
-                    } else {
-                        issues++;
-                    }
-                    counter++;
-                    if (LongMath.isPowerOfTwo(counter)) {
-                        logger.info(counter + " times of day assigned");
-                    }
+            // choose time of day
+            if (trip.getTripOrigin() != null && trip.getTripDestination() != null
+                    && trip.getTripMode() != null) {
+                int departureTimeInMinutes;
+                if (trip.getTripPurpose().equals(Purpose.RRT)){
+                    departureTimeInMinutes = chooseDepartureTime(trip);
+                } else {
+                    int arrivalTimeInMinutes = chooseArrivalTime(trip);
+                    departureTimeInMinutes = arrivalTimeInMinutes - (int) estimateTravelTimeForDeparture(trip, arrivalTimeInMinutes);
                 }
-        );
+                //if departure is before midnight
+                if (departureTimeInMinutes < 0) {
+                    departureTimeInMinutes = departureTimeInMinutes + 1440;
+                }
+                trip.setDepartureInMinutes(departureTimeInMinutes);
+                if (trip.isHomeBased()) {
+                    trip.setDepartureInMinutesReturnTrip(chooseDepartureTimeForReturnTrip(trip, departureTimeInMinutes));
+                }
+
+
+            } else {
+                issues++;
+            }
+            counter++;
+            if (LongMath.isPowerOfTwo(counter)) {
+                logger.info(counter + " times of day assigned");
+            }
+        });
         logger.warn(issues + " trips have no time of day since they have no origin, destination or mode");
+    }
+
+    private Day chooseDepartureDay(MitoTrip mitoTrip) {
+        return MitoUtil.select(dayProbabilitiesByPurpose.get(mitoTrip.getTripPurpose()), MitoUtil.getRandomObject());
     }
 
     private int chooseDepartureTime(MitoTrip mitoTrip) {
@@ -108,8 +116,8 @@ public final class TimeOfDayChoice extends Module {
             departureTime = arrivalTime + duration;
         }
         //if departure is after midnight
-        if (departureTime > 24 * 60) {
-            return departureTime - 24 * 60;
+        if (departureTime > 1440) {
+            return departureTime - 1440;
         } else {
             return departureTime;
         }
