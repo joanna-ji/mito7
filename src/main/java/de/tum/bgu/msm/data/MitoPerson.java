@@ -91,6 +91,10 @@ public class MitoPerson implements Id {
         }
     }
 
+    public boolean hasTripsForPurpose(Purpose purpose) {
+        return getTripsForPurpose(purpose).size() > 0;
+    }
+
     public List<MitoTrip> getTrips() {
         return tripsByPurpose.values().stream().flatMap(List::stream).collect(Collectors.toList());
     }
