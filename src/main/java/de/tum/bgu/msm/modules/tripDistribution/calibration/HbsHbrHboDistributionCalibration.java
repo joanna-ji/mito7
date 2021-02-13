@@ -20,13 +20,14 @@ import java.util.stream.IntStream;
  */
 public class HbsHbrHboDistributionCalibration extends RandomizableConcurrentFunction<Void> {
 
+    private int i;
+
     private final static double VARIANCE_DOUBLED = 150 * 2;
     private final static double SQRT_INV = 1.0 / Math.sqrt(Math.PI * VARIANCE_DOUBLED);
 
     private final static Logger logger = Logger.getLogger(HbsHbrHboDistributionCalibration.class);
 
     private final Purpose purpose;
-    private final double peakHour;
     private final double speedInv;
 
     private final IndexedDoubleMatrix2D baseProbabilities;
@@ -42,33 +43,33 @@ public class HbsHbrHboDistributionCalibration extends RandomizableConcurrentFunc
     private double personBudgetPerTrip;
     private double mean;
 
-    private HbsHbrHboDistributionCalibration(Purpose purpose, IndexedDoubleMatrix2D baseProbabilities,
+    private HbsHbrHboDistributionCalibration(Purpose purpose, IndexedDoubleMatrix2D baseProbabilities, int i,
                                              Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                             TravelDistances travelDistances, double peakHour, double speedInv) {
+                                             TravelDistances travelDistances, double speedInv) {
         super(MitoUtil.getRandomObject().nextLong());
         this.purpose = purpose;
         this.householdPartition = householdPartition;
         this.baseProbabilities = baseProbabilities;
+        this.i = i;
         this.zonesCopy = new HashMap<>(zones);
         this.destinationProbabilities = new double[baseProbabilities.columns()];
         this.travelDistances = travelDistances;
-        this.peakHour = peakHour;
         this.speedInv = speedInv;
     }
 
-    public static HbsHbrHboDistributionCalibration hbs(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                                       TravelDistances travelDistances, double peakHour) {
-        return new HbsHbrHboDistributionCalibration(Purpose.HBS, baseProbabilities, householdPartition, zones, travelDistances, peakHour, 60/20.763);
+    public static HbsHbrHboDistributionCalibration hbs(IndexedDoubleMatrix2D baseProbabilities, int i, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                                       TravelDistances travelDistances) {
+        return new HbsHbrHboDistributionCalibration(Purpose.HBS, baseProbabilities, i, householdPartition, zones, travelDistances, 60/20.763);
     }
 
-    public static HbsHbrHboDistributionCalibration hbo(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                                       TravelDistances travelDistances, double peakHour) {
-        return new HbsHbrHboDistributionCalibration(Purpose.HBO, baseProbabilities, householdPartition, zones, travelDistances, peakHour,60/24.713);
+    public static HbsHbrHboDistributionCalibration hbo(IndexedDoubleMatrix2D baseProbabilities, int i, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                                       TravelDistances travelDistances) {
+        return new HbsHbrHboDistributionCalibration(Purpose.HBO, baseProbabilities, i, householdPartition, zones, travelDistances,60/24.713);
     }
 
-    public static HbsHbrHboDistributionCalibration hbr(IndexedDoubleMatrix2D baseProbabilities, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
-                                                       TravelDistances travelDistances, double peakHour) {
-        return new HbsHbrHboDistributionCalibration(Purpose.HBR, baseProbabilities, householdPartition, zones, travelDistances, peakHour,60/24.805);
+    public static HbsHbrHboDistributionCalibration hbr(IndexedDoubleMatrix2D baseProbabilities, int i, Collection<MitoHousehold> householdPartition, Map<Integer, MitoZone> zones,
+                                                       TravelDistances travelDistances) {
+        return new HbsHbrHboDistributionCalibration(Purpose.HBR, baseProbabilities, i, householdPartition, zones, travelDistances,60/24.805);
     }
 
     @Override
@@ -81,7 +82,7 @@ public class HbsHbrHboDistributionCalibration extends RandomizableConcurrentFunc
                         updateBudgets(person);
                         for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
                             trip.setTripOrigin(household);
-                            MitoZone destination = findDestination(household.getHomeZone().getId());
+                            MitoZone destination = findDestinationNoTtbAdjustment(household.getHomeZone().getId());
                             trip.setTripDestination(destination);
                             if (destination == null) {
                                 logger.debug("No destination found for trip" + trip);
@@ -89,8 +90,8 @@ public class HbsHbrHboDistributionCalibration extends RandomizableConcurrentFunc
                                 continue;
                             }
                             postProcessTrip(trip);
-                            DiscretionaryTripDistributionCalibration.distributedTripsCounter.incrementAndGet();
-                            DiscretionaryTripDistributionCalibration.distributedDistanceSum.addAndGet(
+                            DiscretionaryTripDistributionCalibration.distributedTripsCounters.incrementAndGet(i);
+                            DiscretionaryTripDistributionCalibration.distributedDistanceSums.addAndGet(i,
                                     travelDistances.getTravelDistance(household.getHomeZone().getId(),destination.getZoneId()));
                         }
                     } else {
@@ -123,6 +124,14 @@ public class HbsHbrHboDistributionCalibration extends RandomizableConcurrentFunc
         });
 
         final int destinationInternalIndex = MitoUtil.select(destinationProbabilities, random);
+        return zonesCopy.get(baseProbabilities.getIdForInternalColumnIndex(destinationInternalIndex));
+    }
+
+    private MitoZone findDestinationNoTtbAdjustment(int origin) {
+        final IndexedDoubleMatrix1D row = baseProbabilities.viewRow(origin);
+        double[] baseProbs = row.toNonIndexedArray();
+
+        final int destinationInternalIndex = MitoUtil.select(baseProbs, random);
         return zonesCopy.get(baseProbabilities.getIdForInternalColumnIndex(destinationInternalIndex));
     }
 

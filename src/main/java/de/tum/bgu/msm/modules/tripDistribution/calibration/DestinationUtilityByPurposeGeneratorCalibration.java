@@ -14,18 +14,20 @@ import org.matsim.core.utils.collections.Tuple;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class DestinationUtilityByPurposeGeneratorCalibration implements Callable<Tuple<Purpose, IndexedDoubleMatrix2D>> {
+public class DestinationUtilityByPurposeGeneratorCalibration implements Callable<Tuple<Integer, IndexedDoubleMatrix2D>> {
 
     private final static Logger logger = Logger.getLogger(DestinationUtilityByPurposeGeneratorCalibration.class);
 
+    private final Integer i;
     private final Purpose purpose;
     private final Map<Integer, MitoZone> zones;
     private final TravelDistances travelDistances;
     private final double impedanceParam;
     private final double distanceParam;
 
-    DestinationUtilityByPurposeGeneratorCalibration(Purpose purpose, DataSet dataSet, double impedanceParam, double distanceParam) {
+    DestinationUtilityByPurposeGeneratorCalibration(Purpose purpose, int i, DataSet dataSet, double impedanceParam, double distanceParam) {
         this.purpose = purpose;
+        this.i = i;
         this.zones = dataSet.getZones();
         this.travelDistances = dataSet.getTravelDistancesNMT();
         this.impedanceParam = impedanceParam;
@@ -33,7 +35,7 @@ public class DestinationUtilityByPurposeGeneratorCalibration implements Callable
     }
 
     @Override
-    public Tuple<Purpose, IndexedDoubleMatrix2D> call() {
+    public Tuple<Integer, IndexedDoubleMatrix2D> call() {
         final IndexedDoubleMatrix2D utilityMatrix = new IndexedDoubleMatrix2D(zones.values(), zones.values());
         long counter = 0;
         for (MitoZone origin : zones.values()) {
@@ -50,8 +52,8 @@ public class DestinationUtilityByPurposeGeneratorCalibration implements Callable
                 counter++;
             }
         }
-        logger.info("Utility matrix for purpose " + purpose + " done.");
-        return new Tuple<>(purpose, utilityMatrix);
+//        logger.info("Utility matrix for purpose " + purpose + " done.");
+        return new Tuple<>(i, utilityMatrix);
     }
 
     public double calculateUtility(double attraction, double travelDistance) {

@@ -16,6 +16,7 @@ import org.matsim.core.utils.geometry.CoordUtils;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Methods to summarize model results
@@ -153,11 +154,14 @@ public class SummarizeData {
         LOGGER.info("  Writing trips file");
         String file = Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + dataSet.getYear() + "/microData/trips.csv";
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(file, false);
-        pwh.println("t.id,p.ID,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,mode,departure_day,departure_time,departure_time_return");
-        for (MitoTrip trip : dataSet.getTrips().values()) {
-            pwh.print(trip.getId());
+        pwh.println("hh.id,p.ID,t.id,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,mode,departure_day,departure_time,departure_time_return");
+        Collection<MitoTrip> tripsToPrint = dataSet.getTrips().values(); //.stream().filter(trip -> trip.getTripPurpose().equals(Purpose.HBO)).collect(Collectors.toUnmodifiableList());
+        for (MitoTrip trip : tripsToPrint) {
+            pwh.print(trip.getPerson().getHousehold().getId());
             pwh.print(",");
             pwh.print(trip.getPerson().getId());
+            pwh.print(",");
+            pwh.print(trip.getId());
             pwh.print(",");
             Location origin = trip.getTripOrigin();
             String originId = "null";

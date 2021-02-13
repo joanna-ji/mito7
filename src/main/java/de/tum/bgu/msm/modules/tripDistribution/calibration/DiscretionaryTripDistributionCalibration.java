@@ -2,6 +2,7 @@ package de.tum.bgu.msm.modules.tripDistribution.calibration;
 
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.AtomicDouble;
+import com.google.common.util.concurrent.AtomicDoubleArray;
 import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelDistances.TravelDistances;
 import de.tum.bgu.msm.modules.Module;
@@ -14,6 +15,8 @@ import org.matsim.core.utils.collections.Tuple;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.stream.Collectors;
 
 import static de.tum.bgu.msm.data.Purpose.*;
 
@@ -22,20 +25,21 @@ import static de.tum.bgu.msm.data.Purpose.*;
  */
 public final class DiscretionaryTripDistributionCalibration extends Module {
 
-    public final static AtomicInteger distributedTripsCounter = new AtomicInteger(0);
-    public final static AtomicDouble distributedDistanceSum = new AtomicDouble(0.);
     public final static AtomicDouble idealBudgetSum = new AtomicDouble(0.);
     public final static AtomicDouble actualBudgetSum = new AtomicDouble(0.);
     public final static AtomicInteger failedTripsCounter = new AtomicInteger(0);
 
-    private final static Purpose PURPOSE = HBS;
-    private final static EnumSet<Purpose> PURPOSES = EnumSet.of(PURPOSE);
-    private final double referenceMean = 4.855919;
+    public final static AtomicIntegerArray distributedTripsCounters = new AtomicIntegerArray(new int[] {0,0,0});
+    public final static AtomicDoubleArray distributedDistanceSums = new AtomicDoubleArray(new double[] {0.,0.,0.});
 
-    private final double impedanceParam = 14.5;
-    private double distanceParam = -0.0355;
+    private final static Purpose PURPOSE = HBO;
 
-    private EnumMap<Purpose, IndexedDoubleMatrix2D> utilityMatrices = new EnumMap<>(Purpose.class);
+    private final double impedanceParam = 53;
+
+    private double[] referenceMeans = {5.411735, 8.806595, 9.801090};
+    private double[] distanceParams = {-0.062, -0.062, -0.062};
+
+    private Map<Integer, IndexedDoubleMatrix2D> utilityMatrices = new HashMap<>();
 
     private final static Logger logger = Logger.getLogger(DiscretionaryTripDistributionCalibration.class);
 
@@ -46,38 +50,41 @@ public final class DiscretionaryTripDistributionCalibration extends Module {
     @Override
     public void run() {
 
-        double adjustment;
+        double[] adjustments;
         do {
-            logger.info("Destination choice utility matrices...");
+//            logger.info("Destination choice utility matrices...");
             buildMatrices();
 
-            logger.info("Distributing trips for households...");
+//            logger.info("Distributing trips for households...");
             distributeTrips();
 
-            logger.info("Updating distanceParam...");
-            adjustment = calculateAdjustment();
-            distanceParam *= adjustment;
+//            logger.info("Updating distanceParam...");
+            adjustments = calculateAdjustments();
+            for (int i = 0 ; i < 3 ; i++) {
+                distanceParams[i] *= adjustments[i];
+                distributedTripsCounters.set(i, 0);
+                distributedDistanceSums.set(i, 0.);
+            }
 
-            logger.info("New distance param = " + distanceParam);
-            distributedTripsCounter.set(0);
-            distributedDistanceSum.set(0.0);
+            logger.info("New distance params = " + distanceParams[0] + " || " + distanceParams[1] + " || " + distanceParams[2]);
+
             failedTripsCounter.set(0);
             idealBudgetSum.set(0.);
             actualBudgetSum.set(0.);
-        } while (Math.abs(adjustment - 1) > 0.01);
+        } while (Arrays.stream(adjustments).map(b -> Math.abs(b-1.)).max().getAsDouble() > 0.01);
     }
 
     private void buildMatrices() {
-        List<Callable<Tuple<Purpose,IndexedDoubleMatrix2D>>> utilityCalcTasks = new ArrayList<>();
-        for (Purpose purpose : PURPOSES) {
-            utilityCalcTasks.add(new DestinationUtilityByPurposeGeneratorCalibration(purpose, dataSet, impedanceParam, distanceParam));
+        List<Callable<Tuple<Integer,IndexedDoubleMatrix2D>>> utilityCalcTasks = new ArrayList<>();
+
+        for (int i = 0 ; i < 3 ; i++) {
+            utilityCalcTasks.add(new DestinationUtilityByPurposeGeneratorCalibration(PURPOSE, i, dataSet, impedanceParam, distanceParams[i]));
         }
-        ConcurrentExecutor<Tuple<Purpose, IndexedDoubleMatrix2D>> executor = ConcurrentExecutor.fixedPoolService(PURPOSES.size());
-        List<Tuple<Purpose,IndexedDoubleMatrix2D>> results = executor.submitTasksAndWaitForCompletion(utilityCalcTasks);
-        for(Tuple<Purpose, IndexedDoubleMatrix2D> result: results) {
+        ConcurrentExecutor<Tuple<Integer, IndexedDoubleMatrix2D>> executor = ConcurrentExecutor.fixedPoolService(3);
+        List<Tuple<Integer,IndexedDoubleMatrix2D>> results = executor.submitTasksAndWaitForCompletion(utilityCalcTasks);
+        for(Tuple<Integer, IndexedDoubleMatrix2D> result: results) {
             utilityMatrices.put(result.getFirst(), result.getSecond());
         }
-        utilityMatrices.putAll(dataSet.getMandatoryUtilityMatrices());
     }
 
     private void distributeTrips() {
@@ -87,32 +94,41 @@ public final class DiscretionaryTripDistributionCalibration extends Module {
         final int partitionSize = (int) ((double) households.size() / (numberOfThreads)) + 1;
         Iterable<List<MitoHousehold>> partitions = Iterables.partition(households, partitionSize);
 
-        logger.info("Using " + numberOfThreads + " thread(s)" +
-                " with partitions of size " + partitionSize);
+//        logger.info("Using " + numberOfThreads + " thread(s)" +
+//                " with partitions of size " + partitionSize);
 
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(numberOfThreads);
         List<Callable<Void>> homeBasedTasks = new ArrayList<>();
         for (final List<MitoHousehold> partition : partitions) {
-            homeBasedTasks.add(HbsHbrHboDistributionCalibration.hbs(utilityMatrices.get(HBS), partition, dataSet.getZones(),
-                    dataSet.getTravelDistancesAuto(), dataSet.getPeakHour()));
+            List<MitoHousehold> noCarHouseholds = partition.stream().filter(hh -> hh.getAutos() == 0).collect(Collectors.toUnmodifiableList());
+            List<MitoHousehold> partialCarHouseholds = partition.stream().filter(hh -> hh.getAutosPerAdult() > 0 && hh.getAutosPerAdult() < 1).collect(Collectors.toUnmodifiableList());
+            List<MitoHousehold> allCarHouseholds = partition.stream().filter(hh -> hh.getAutosPerAdult() >= 1).collect(Collectors.toUnmodifiableList());
+
+            homeBasedTasks.add(HbsHbrHboDistributionCalibration.hbo(utilityMatrices.get(0), 0, noCarHouseholds, dataSet.getZones(), dataSet.getTravelDistancesAuto()));
+            homeBasedTasks.add(HbsHbrHboDistributionCalibration.hbo(utilityMatrices.get(1), 1, partialCarHouseholds, dataSet.getZones(), dataSet.getTravelDistancesAuto()));
+            homeBasedTasks.add(HbsHbrHboDistributionCalibration.hbo(utilityMatrices.get(2), 2, allCarHouseholds, dataSet.getZones(), dataSet.getTravelDistancesAuto()));
         }
         executor.submitTasksAndWaitForCompletion(homeBasedTasks);
-        logger.info("Distributed: " + distributedTripsCounter + ", failed: " + failedTripsCounter);
-        logger.info("Distance sum: " + distributedDistanceSum);
-        logger.info("Ideal budget sum: " + idealBudgetSum);
-        logger.info("Actual budget sum: " + actualBudgetSum);
+//        logger.info("Distributed: " + distributedTripsCounter + ", failed: " + failedTripsCounter);
+//        logger.info("Distance sum: " + distributedDistanceSum);
+//        logger.info("Ideal budget sum: " + idealBudgetSum);
+//        logger.info("Actual budget sum: " + actualBudgetSum);
     }
 
-    private double calculateAdjustment() {
-        double mean = distributedDistanceSum.doubleValue() / distributedTripsCounter.doubleValue();
-        double adjustment = mean / referenceMean;
-        if(adjustment < 0.5) {
-            adjustment = 0.5;
-        } else if (adjustment > 2) {
-            adjustment = 2;
+    private double[] calculateAdjustments() {
+
+        double[] adjustments = new double[3];
+
+        for (int i = 0 ; i < 3 ; i++) {
+            double mean = distributedDistanceSums.get(i) / distributedTripsCounters.get(i);
+            adjustments[i] = mean / referenceMeans[i];
+
+            adjustments[i] = Math.max(adjustments[i], 0.5);
+            adjustments[i] = Math.min(adjustments[i], 2);
+
+            logger.info(i + " || Mean: " + mean + " Ref: " + referenceMeans[i] + " Adjustment: " + adjustments[i]);
         }
-        logger.info("Mean: " + mean + " Ref: " + referenceMean + " Adjustment: " + adjustment);
-        return adjustment;
+        return adjustments;
     }
 
 
