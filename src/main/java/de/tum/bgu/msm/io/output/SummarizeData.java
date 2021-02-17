@@ -334,6 +334,6 @@ public class SummarizeData {
         LOGGER.info("  Writing matsim plans file");
 
         String outputSubDirectory = Resources.instance.getBaseDirectory() + "/scenOutput/" + scenarioName + "/"+ dataSet.getYear()+"/";
-        new PopulationWriter(dataSet.getPopulation()).write(outputSubDirectory + "matsimPlans.xml.gz");
+        new PopulationWriter(dataSet.getPopulation(Day.weekday)).write(outputSubDirectory + "matsimPlans.xml.gz");
     }
 }

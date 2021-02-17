@@ -129,7 +129,7 @@ public class Resources {
     }
 
     public Path getExternalDepartureTimeFilePath() {
-        return baseDirectory.resolve(EXTERNAL_DEPARTURE_TIME_FILE);
+        return baseDirectory.resolve(getString(EXTERNAL_DEPARTURE_TIME_FILE));
     }
 
     public Path getDayProbabilitiesFilePath() {

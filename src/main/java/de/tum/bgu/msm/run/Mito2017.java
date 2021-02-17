@@ -3,6 +3,7 @@ package de.tum.bgu.msm.run;
 import de.tum.bgu.msm.MitoModel;
 import de.tum.bgu.msm.MitoModel2017;
 import de.tum.bgu.msm.data.DataSet;
+import de.tum.bgu.msm.data.Day;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import de.tum.bgu.msm.trafficAssignment.CarSkimUpdater;
@@ -14,6 +15,8 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
+
+import java.util.EnumMap;
 
 public class Mito2017 {
 
@@ -40,16 +43,20 @@ public class Mito2017 {
             }
 
             String outputSubDirectory = "scenOutput/" + model.getScenarioName() + "/" + dataSet.getYear();
-            config.controler().setOutputDirectory(Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + "/trafficAssignment");
 
-            MutableScenario matsimScenario = (MutableScenario) ScenarioUtils.loadScenario(config);
-            matsimScenario.setPopulation(dataSet.getPopulation());
+            final EnumMap<Day, Controler> controlers = new EnumMap<>(Day.class);
+            for (Day day : Day.values()) {
+                logger.info("Starting " + day.toString().toUpperCase() + " MATSim simulation");
+                config.controler().setOutputDirectory(Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + "/trafficAssignment/" + day.toString());
+                MutableScenario matsimScenario = (MutableScenario) ScenarioUtils.loadScenario(config);
+                matsimScenario.setPopulation(dataSet.getPopulation(day));
 
-            Controler controler = new Controler(matsimScenario);
-            controler.run();
+                controlers.put(day, new Controler(matsimScenario));
+                controlers.get(day).run();
+            }
 
             if (Resources.instance.getBoolean(Properties.PRINT_OUT_SKIM, false)) {
-                CarSkimUpdater skimUpdater = new CarSkimUpdater(controler, model.getData(), model.getScenarioName());
+                CarSkimUpdater skimUpdater = new CarSkimUpdater(controlers.get(Day.weekday), model.getData(), model.getScenarioName());
                 skimUpdater.run();
             }
         }

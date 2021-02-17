@@ -2,6 +2,7 @@ package de.tum.bgu.msm.modules.plansConverter.externalFlows;
 
 import com.google.common.collect.HashBasedTable;
 import de.tum.bgu.msm.data.DataSet;
+import de.tum.bgu.msm.data.Day;
 import de.tum.bgu.msm.io.input.readers.ExternalFlowMatrixReader;
 import de.tum.bgu.msm.io.input.readers.ExternalZonesReader;
 import de.tum.bgu.msm.io.input.readers.LongDistanceTimeOfDayDistributionReader;
@@ -45,7 +46,7 @@ public class LongDistanceTraffic extends Module {
         readDepartureTimeDistribution();
         readZones();
         readMatrices();
-        addLongDistancePlans();
+        for (Day day : Day.values()) addLongDistancePlans(day);
     }
 
     private void readDepartureTimeDistribution() {
@@ -72,8 +73,8 @@ public class LongDistanceTraffic extends Module {
         }
     }
 
-    private void addLongDistancePlans() {
-        final Population population = dataSet.getPopulation();
+    private void addLongDistancePlans(Day day) {
+        final Population population = dataSet.getPopulation(day);
         PopulationFactory matsimPopulationFactory = population.getFactory();
         long personId = 0;
         for (ExternalFlowType type : ExternalFlowType.values()) {

@@ -46,7 +46,7 @@ public class MandatoryTripGeneration extends Module {
     }
 
     private void calculateAttractions() {
-        AttractionCalculator calculator = new AttractionCalculator(dataSet, MANDATORY_PURPOSES);
+        AttractionCalculator calculator = new AttractionCalculator(dataSet, EnumSet.allOf(Purpose.class));
         calculator.run();
     }
 

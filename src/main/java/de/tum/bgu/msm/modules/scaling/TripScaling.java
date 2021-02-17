@@ -1,6 +1,7 @@
 package de.tum.bgu.msm.modules.scaling;
 
 import de.tum.bgu.msm.data.DataSet;
+import de.tum.bgu.msm.data.Day;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
@@ -26,12 +27,19 @@ public class TripScaling extends Module {
     private void scaleTrips() {
 
         dataSet.getTrips().values().forEach(trip -> {
-            if (MitoUtil.getRandomObject().nextDouble() < tripScalingFactor) {
-                dataSet.addTripToSubsample(trip);
+            Day day = trip.getDepartureDay();
+            if(day.equals(Day.weekday)) {
+                if (MitoUtil.getRandomObject().nextDouble() < tripScalingFactor / 5) {
+                    dataSet.addTripToSubsample(day, trip);
+                }
+            } else if (MitoUtil.getRandomObject().nextDouble() < tripScalingFactor) {
+                dataSet.addTripToSubsample(day, trip);
             }
         });
 
-        logger.info("Trips scaled down. The sub-sample of trips contains " + dataSet.getTripSubsample().size() + " trips.");
-
+        logger.info("Trips scaled down using scale factor: " + tripScalingFactor);
+        for (Day day : Day.values()) {
+            logger.info("The " + day.toString().toUpperCase() + " sub-sample contains " + dataSet.getTripSubsample(day).size() + " trips.");
+        }
     }
 }

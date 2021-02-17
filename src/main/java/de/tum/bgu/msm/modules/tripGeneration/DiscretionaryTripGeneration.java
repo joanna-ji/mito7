@@ -43,7 +43,6 @@ public class DiscretionaryTripGeneration extends Module {
         if (addAirportDemand){
             generateAirportTrips(scaleFactorForTripGeneration);
         }
-        calculateAttractions();
         balanceTrips();
         logger.info("  Completed discretionary trip generation model.");
     }
@@ -56,11 +55,6 @@ public class DiscretionaryTripGeneration extends Module {
     private void generateAirportTrips(double scaleFactorForTripGeneration) {
         AirportTripGeneration airportTripGeneration = new AirportTripGeneration(dataSet);
         airportTripGeneration.run(scaleFactorForTripGeneration);
-    }
-
-    private void calculateAttractions() {
-        AttractionCalculator calculator = new AttractionCalculator(dataSet, DISCRETIONARY_PURPOSES);
-        calculator.run();
     }
 
     private void balanceTrips() {

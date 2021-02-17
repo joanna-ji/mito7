@@ -38,18 +38,20 @@ public final class MatsimPopulationGenerator extends Module {
 
     @Override
     public void run() {
-        Population population = generateMatsimPopulation();
-        dataSet.setPopulation(population);
+        for (Day day : Day.values()) {
+            Population population = generateMatsimPopulation(day);
+            dataSet.setPopulation(day, population);
+        }
     }
 
-    private Population generateMatsimPopulation(){
+    private Population generateMatsimPopulation(Day day){
         Population population = PopulationUtils.createPopulation(ConfigUtils.createConfig());
         PopulationFactory factory = population.getFactory();
         AtomicInteger assignedTripCounter = new AtomicInteger(0);
         AtomicInteger nonAssignedTripCounter = new AtomicInteger(0);
-        dataSet.getTripSubsample().values().forEach(trip ->{
+        dataSet.getTripSubsample(day).values().forEach(trip ->{
             try {
-                if (modeSet.contains(trip.getTripMode())) {
+                if (modeSet.contains(trip.getTripMode()) && !trip.getTripPurpose().equals(Purpose.RRT)) {
                     Person person = factory.createPerson(Id.createPersonId(trip.getId()));
                     trip.setMatsimPerson(person);
 
@@ -132,6 +134,8 @@ public final class MatsimPopulationGenerator extends Module {
             return "education";
         } else if (purpose.equals(Purpose.HBS)){
             return "shopping";
+        } else if (purpose.equals(Purpose.HBR)) {
+            return "recreation";
         } else if (purpose.equals(Purpose.AIRPORT)) {
             if (trip.getTripDestination().getZoneId() == Resources.instance.getInt(Properties.AIRPORT_ZONE)) {
                 return "airport";

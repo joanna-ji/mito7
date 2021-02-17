@@ -28,7 +28,7 @@ public class DataSet {
     private final Map<Integer, MitoJob> jobs = new LinkedHashMap<>();
 
     private final Map<Integer, MitoTrip> trips = new LinkedHashMap<>();
-    private final Map<Integer, MitoTrip> tripSubsample = new LinkedHashMap<>();
+    private final EnumMap<Day, Map<Integer, MitoTrip>> tripSubsample = new EnumMap<>(Day.class);
 
 
     private final Table<Purpose, Mode, Double> modeSharesByPurpose
@@ -44,7 +44,7 @@ public class DataSet {
 
     private EnumMap<Purpose, IndexedDoubleMatrix2D> mandatoryUtilityMatrices = new EnumMap<>(Purpose.class);
 
-    private Population population;
+    private final EnumMap<Day, Population> populations = new EnumMap<>(Day.class);
     private final ModeChoiceCalibrationData modeChoiceCalibrationData = new ModeChoiceCalibrationData();
 
     public TravelDistances getTravelDistancesAuto(){return this.travelDistancesAuto;}
@@ -118,8 +118,8 @@ public class DataSet {
         return Collections.unmodifiableMap(trips);
     }
 
-    public Map<Integer, MitoTrip> getTripSubsample() {
-        return Collections.unmodifiableMap(tripSubsample);
+    public Map<Integer, MitoTrip> getTripSubsample(Day day) {
+        return Collections.unmodifiableMap(tripSubsample.get(day));
     }
 
     public void addTrip(final MitoTrip trip) {
@@ -135,8 +135,12 @@ public class DataSet {
         }
     }
 
-    public void addTripToSubsample(final MitoTrip trip) {
-        MitoTrip test = tripSubsample.putIfAbsent(trip.getId(), trip);
+    public void addTripToSubsample(Day day, final MitoTrip trip) {
+        if(!(tripSubsample.containsKey(day))) {
+            tripSubsample.put(day, new LinkedHashMap<>());
+        }
+
+        MitoTrip test = tripSubsample.get(day).putIfAbsent(trip.getId(), trip);
         if(test != null) {
             throw new IllegalArgumentException("MitoTrip id " + trip.getId() + " already exists!");
         }
@@ -274,12 +278,12 @@ public class DataSet {
         this.departureMinuteCumProbByPurpose = departureMinuteCumProbByPurpose;
     }
 
-    public void setPopulation(Population population) {
-        this.population = population;
+    public void setPopulation(Day day, Population population) {
+        populations.put(day, population);
     }
 
-    public Population getPopulation() {
-        return population;
+    public Population getPopulation(Day day) {
+        return populations.get(day);
     }
 
     public ModeChoiceCalibrationData getModeChoiceCalibrationData() {
