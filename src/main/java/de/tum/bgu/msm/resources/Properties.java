@@ -35,6 +35,7 @@ public class Properties {
     public static final String DOMINANT_COMMUTE_MODE_COEFFICIENTS = "dominantCommuteMode.coeffs";
 
     public static final String MODE_RESTRICTION_COEFFICIENTS = "modeRestriction.coeffs";
+    public static final String MODE_RESTRICTION_CONSTANTS = "modeRestriction.ASCs";
     public static final String MODE_CHOICE_COEFFICIENTS = "modeChoice.coeffs";
 
     public static final String BUS_TRAVEL_TIME_SKIM = "bus.travelTime";

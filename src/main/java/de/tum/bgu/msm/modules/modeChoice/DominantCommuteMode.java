@@ -23,8 +23,7 @@ public class DominantCommuteMode extends Module {
     private final static Path dominantModeCoefPath = Resources.instance.getDominantCommuteModeCoefficients();
 
     private final EnumMap<Mode, Map<String, Double>> coefficients = new EnumMap<>(Mode.class);
-    private final LogitTools logitTools = new LogitTools(Mode.class);
-    private final List<Tuple<EnumSet<Mode>, Double>> nests;
+    private final LogitTools<Mode> logitTools = new LogitTools<>(Mode.class);
 
     private int nonCommuters = 0;
 
@@ -33,7 +32,6 @@ public class DominantCommuteMode extends Module {
         for(Mode mode : MODES) {
             coefficients.put(mode, new CoefficientReader(dataSet, mode, dominantModeCoefPath).readCoefficients());
         }
-        nests = logitTools.identifyNests(coefficients);
     }
 
     @Override
@@ -43,6 +41,7 @@ public class DominantCommuteMode extends Module {
     }
 
     private void dominantCommuteMode() {
+        List<Tuple<EnumSet<Mode>, Double>> nests = logitTools.identifyNests(coefficients);
 
         for (MitoPerson person : dataSet.getModelledPersons().values()) {
             if (person.hasTripsForPurpose(HBW) || person.hasTripsForPurpose(HBE)) {
@@ -51,11 +50,12 @@ public class DominantCommuteMode extends Module {
                 nonCommuters++;
             }
         }
+
         logger.info(nonCommuters + " non-commuters skipped");
     }
 
     private EnumMap<Mode, Double> getUtilities(MitoPerson person) {
-        EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
+        EnumMap<Mode, Double> utilities = new EnumMap<>(Mode.class);
         for(Mode mode : MODES) {
             utilities.put(mode, getPredictor(person, coefficients.get(mode)));
         }
@@ -93,6 +93,11 @@ public class DominantCommuteMode extends Module {
             predictor += coefficients.get("hh.children_3");
         }
 
+        // Autos per adult
+        int householdAdults = hh.getHhSize() - householdChildren;
+        double autosPerAdult = Math.min((double) hh.getAutos() / householdAdults , 1.);
+        predictor += autosPerAdult * coefficients.get("hh.autosPerAdult");
+
         // Economic status
         int householdEconomicStatus = hh.getEconomicStatus();
         if (householdEconomicStatus == 2) {
@@ -108,20 +113,13 @@ public class DominantCommuteMode extends Module {
             predictor += coefficients.get("hh.urban");
         }
 
-        // Autos per adult
-        int householdAdults = hh.getHhSize() - householdChildren;
-        double autosPerAdult = Math.min((double) hh.getAutos() / householdAdults , 1.);
-        predictor += autosPerAdult * coefficients.get("hh.autosPerAdult");
-
         // Is the place of work or study close to PT?
-        if(coefficients.containsKey("p.workPT_12")) {
-            if(pp.getOccupation() != null) {
-                int occupationZoneId = pp.getOccupation().getZoneId();
-                double occupationDistanceToPT = dataSet.getZones().get(occupationZoneId).getDistanceToNearestRailStop();
-                double occupationWalkToPT = occupationDistanceToPT * (60 / 4.8);
-                if(occupationWalkToPT <= 20) {
-                    predictor += coefficients.get("p.workPT_12");
-                }
+        if(pp.getOccupation() != null) {
+            int occupationZoneId = pp.getOccupation().getZoneId();
+            double occupationDistanceToPT = dataSet.getZones().get(occupationZoneId).getDistanceToNearestRailStop();
+            double occupationWalkToPT = occupationDistanceToPT * (60 / 4.8);
+            if(occupationWalkToPT <= 20) {
+                predictor += coefficients.get("p.workPT_12");
             }
         }
 
@@ -153,7 +151,7 @@ public class DominantCommuteMode extends Module {
 
         // Has drivers Licence
         if(pp.hasDriversLicense()) {
-            predictor += coefficients.get("p.driversLicence");
+            predictor += coefficients.get("p.driversLicense");
         }
 
         // Has bicycle
@@ -162,44 +160,40 @@ public class DominantCommuteMode extends Module {
         }
 
         // Number of education trips
-        int trips_HBE = pp.getTripsForPurpose(HBE).size();
-        if (trips_HBE == 0) {
-            predictor += 0;
-        } else if (trips_HBE < 5) {
-            predictor += coefficients.get("p.trips_HBE_1234");
-        } else {
-            predictor += coefficients.get("p.trips_HBE_5");
+        int eduTrips = pp.getTripsForPurpose(HBE).size();
+        if (eduTrips >= 5) {
+            predictor += coefficients.get("p.eduTrips_5");
+        } else if (eduTrips > 0) {
+            predictor += coefficients.get("p.eduTrips_1234");
         }
 
         // Mean & coefficient of variation of mandatory trips
         List<MitoTrip> workTrips = pp.getTripsForPurpose(HBW);
         List<MitoTrip> educationTrips = pp.getTripsForPurpose(HBE);
 
-        List<MitoTrip> commuteTrips = new ArrayList(workTrips);
+        List<MitoTrip> commuteTrips = new ArrayList<>(workTrips);
         commuteTrips.addAll(educationTrips);
-        int commuteTripCount = commuteTrips.size();
 
-        if (commuteTripCount > 0) {
-            ArrayList<Double> commuteTripDistances = new ArrayList<>();
-            double sum = 0;
+        if (commuteTrips.size() > 0) {
+            HashMap<Integer, Integer> freqs = new HashMap<>();
+            int originId = hh.getHomeZone().getZoneId();
             for (MitoTrip trip : commuteTrips) {
-                int originId = trip.getTripOrigin().getZoneId();
                 int destinationId = trip.getTripDestination().getZoneId();
-                double commuteDistance = dataSet.getTravelDistancesNMT().getTravelDistance(originId,destinationId);
-                commuteTripDistances.add(commuteDistance);
-                sum += commuteDistance;
+                Integer freq = freqs.get(destinationId);
+                freqs.put(destinationId, (freq == null) ? 1 : freq + 1);
             }
-            double mean = sum / commuteTripCount;
-            double sqrtMean = Math.sqrt(mean);
-            double sumSquaredDiff = 0;
-            for(Double s : commuteTripDistances) {
-                sumSquaredDiff += Math.pow(s - mean , 2);
-            }
-            double standardDeviation = Math.sqrt(sumSquaredDiff / commuteTripCount);
-            double coefficientOfVariation = standardDeviation / mean;
 
-            predictor += sqrtMean * coefficients.get("p.m_mode_km_T");
-            predictor += coefficientOfVariation * coefficients.get("p.m_cv_km");
+            int dominantDestinationId = -1;
+            int maxFreq = 0;
+            for (Map.Entry<Integer, Integer> entry : freqs.entrySet()) {
+                int freq = entry.getValue();
+                if (freq > maxFreq) {
+                    maxFreq = freq;
+                    dominantDestinationId = entry.getKey();
+                }
+            }
+            double distance = dataSet.getTravelDistancesNMT().getTravelDistance(originId,dominantDestinationId);
+            predictor += Math.log(distance) * coefficients.get("p.m_km_mode_T");
         }
 
         return predictor;

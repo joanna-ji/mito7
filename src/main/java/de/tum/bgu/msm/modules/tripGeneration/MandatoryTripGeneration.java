@@ -1,11 +1,9 @@
 package de.tum.bgu.msm.modules.tripGeneration;
 
-import de.tum.bgu.msm.TravelDemandGenerator;
+import de.tum.bgu.msm.TravelDemandGenerator2017;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.modules.Module;
-import de.tum.bgu.msm.resources.Properties;
-import de.tum.bgu.msm.resources.Resources;
 import org.apache.log4j.Logger;
 
 import java.util.EnumSet;
@@ -21,7 +19,7 @@ import static de.tum.bgu.msm.data.Purpose.*;
 
 public class MandatoryTripGeneration extends Module {
 
-    private static final Logger logger = Logger.getLogger(TravelDemandGenerator.class);
+    private static final Logger logger = Logger.getLogger(TravelDemandGenerator2017.class);
     private final EnumSet<Purpose> MANDATORY_PURPOSES = EnumSet.of(HBW, HBE);
 
     private final TripsByPurposeGeneratorFactory tripsByPurposeGeneratorFactory;

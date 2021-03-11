@@ -1,7 +1,6 @@
 package de.tum.bgu.msm.trafficAssignment;
 
 import com.google.common.collect.Iterables;
-import de.tum.bgu.msm.MitoModel;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.MitoZone;
 import de.tum.bgu.msm.data.travelDistances.MatrixTravelDistances;

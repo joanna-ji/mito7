@@ -1,6 +1,6 @@
 package de.tum.bgu.msm.modules.tripGeneration;
 
-import de.tum.bgu.msm.TravelDemandGenerator;
+import de.tum.bgu.msm.TravelDemandGenerator2017;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.modules.Module;
@@ -22,7 +22,7 @@ import static de.tum.bgu.msm.data.Purpose.*;
 
 public class DiscretionaryTripGeneration extends Module {
 
-    private static final Logger logger = Logger.getLogger(TravelDemandGenerator.class);
+    private static final Logger logger = Logger.getLogger(TravelDemandGenerator2017.class);
     private final EnumSet<Purpose> DISCRETIONARY_PURPOSES = EnumSet.of(HBS, HBR, HBO, RRT, NHBW, NHBO);
     private final boolean addAirportDemand;
 

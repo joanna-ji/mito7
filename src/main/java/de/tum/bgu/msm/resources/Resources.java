@@ -186,6 +186,10 @@ public class Resources {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_RESTRICTION_COEFFICIENTS));
     }
 
+    public Path getModeRestrictionConstants() {
+        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_RESTRICTION_CONSTANTS));
+    }
+
     public Path getModeChoiceCoefficients() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_CHOICE_COEFFICIENTS));
     }

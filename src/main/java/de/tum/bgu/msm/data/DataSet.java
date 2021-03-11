@@ -42,8 +42,6 @@ public class DataSet {
     private EnumMap<Purpose, DoubleMatrix1D> durationMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> departureMinuteCumProbByPurpose;
 
-    private EnumMap<Purpose, IndexedDoubleMatrix2D> mandatoryUtilityMatrices = new EnumMap<>(Purpose.class);
-
     private final EnumMap<Day, Population> populations = new EnumMap<>(Day.class);
     private final ModeChoiceCalibrationData modeChoiceCalibrationData = new ModeChoiceCalibrationData();
 
@@ -289,16 +287,5 @@ public class DataSet {
     public ModeChoiceCalibrationData getModeChoiceCalibrationData() {
         return modeChoiceCalibrationData;
     }
-
-    public void setMandatoryUtilityMatrices(EnumMap<Purpose, IndexedDoubleMatrix2D> utilityMatrices) {
-        this.mandatoryUtilityMatrices = utilityMatrices;
-    }
-
-    public EnumMap<Purpose, IndexedDoubleMatrix2D> getMandatoryUtilityMatrices() {
-        return mandatoryUtilityMatrices;
-    }
-
-
-
 
 }

@@ -1,6 +1,5 @@
 package de.tum.bgu.msm.run;
 
-import de.tum.bgu.msm.MitoModel;
 import de.tum.bgu.msm.MitoModel2017;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.Day;

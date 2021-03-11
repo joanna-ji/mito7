@@ -24,22 +24,10 @@ public class ModeChoice extends Module {
     private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
     private final static EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,publicTransport,bicycle,walk);
     private final static Path modeChoiceCoefFolder = Resources.instance.getModeChoiceCoefficients();
-    private final static LogitTools logitTools = new LogitTools(Mode.class);
-
-    private final EnumMap<Purpose, EnumMap<Mode, Map<String, Double>>> allCoefficients = new EnumMap<>(Purpose.class);
+    private final static LogitTools<Mode> logitTools = new LogitTools<>(Mode.class);
 
     public ModeChoice(DataSet dataSet) {
         super(dataSet);
-        for (Purpose purpose : PURPOSES) {
-            EnumMap<Mode, Map<String, Double>> coefficientsByMode = new EnumMap<>(Mode.class);
-            for (Mode mode : MODES) {
-                if(!(purpose.equals(RRT) & EnumSet.of(autoDriver,autoPassenger,publicTransport).contains(mode))) {
-                    coefficientsByMode.put(mode, new CoefficientReader(dataSet, mode,
-                            modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
-                }
-            }
-            allCoefficients.put(purpose, coefficientsByMode);
-        }
     }
 
     @Override
@@ -52,7 +40,7 @@ public class ModeChoice extends Module {
     private void modeChoiceByPurpose() {
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(Purpose.values().length);
         for (Purpose purpose : PURPOSES) {
-            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet, allCoefficients.get(purpose)));
+            executor.addTaskToQueue(new ModeChoiceByPurpose(purpose, dataSet));
         }
         executor.execute();
     }
@@ -91,16 +79,19 @@ public class ModeChoice extends Module {
 
         private final Purpose purpose;
         private final DataSet dataSet;
-        private final EnumMap<Mode, Map<String, Double>> coefficients;
-        private final List<Tuple<EnumSet<Mode>, Double>> nests;
+        private final EnumMap<Mode, Map<String, Double>> coefficients = new EnumMap<>(Mode.class);
         private int countTripsSkipped;
 
-        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet, EnumMap<Mode, Map<String, Double>> coefficients) {
+        ModeChoiceByPurpose(Purpose purpose, DataSet dataSet) {
             super(MitoUtil.getRandomObject().nextLong());
             this.purpose = purpose;
             this.dataSet = dataSet;
-            this.coefficients = coefficients;
-            nests = logitTools.identifyNests(coefficients);
+            for(Mode mode : MODES) {
+                if(!(purpose.equals(RRT) & EnumSet.of(autoDriver,autoPassenger,publicTransport).contains(mode))) {
+                    coefficients.put(mode, new CoefficientReader(dataSet, mode,
+                            modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
+                }
+            }
         }
 
         @Override
@@ -108,6 +99,7 @@ public class ModeChoice extends Module {
             logger.info("Mode choice for purpose " + purpose);
             countTripsSkipped = 0;
             try {
+                List<Tuple<EnumSet<Mode>, Double>> nests = logitTools.identifyNests(coefficients);
                 for (MitoPerson person : dataSet.getModelledPersons().values()) {
                     List<MitoTrip> trips = person.getTripsForPurpose(purpose);
                     if(trips.size() > 0) {
@@ -126,17 +118,16 @@ public class ModeChoice extends Module {
 
         private EnumSet<Mode> determineAvailability(MitoPerson person) {
             EnumSet<Mode> availability = person.getModeRestriction().getRestrictedModeSet();
-
+            assert availability != null;
             if(purpose.equals(RRT)) {
                 availability.removeAll(EnumSet.of(autoDriver, autoPassenger, publicTransport));
             }
-
             return availability;
         }
 
         private EnumMap<Mode, Double> getPersonUtilities(MitoPerson person) {
 
-            EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
+            EnumMap<Mode, Double> utilities = new EnumMap<>(Mode.class);
 
             EnumSet<Mode> availableChoices = determineAvailability(person);
             for(Mode mode : availableChoices) {
@@ -148,7 +139,7 @@ public class ModeChoice extends Module {
 
         private EnumMap<Mode, Double> getTripUtilities(EnumMap<Mode, Double> personUtilities, MitoTrip trip) {
 
-            EnumMap<Mode, Double> utilities = new EnumMap(Mode.class);
+            EnumMap<Mode, Double> utilities = new EnumMap<>(Mode.class);
 
             for (Mode mode : personUtilities.keySet()) {
                 utilities.put(mode, personUtilities.get(mode) + getTripPredictor(trip, coefficients.get(mode)));
@@ -167,8 +158,7 @@ public class ModeChoice extends Module {
                 logger.info("0 trip distance for trip " + t.getId());
             }
 
-            double predictor = Math.log(tripDistance) * coefficients.get("t.distance_T");
-            return predictor;
+            return Math.log(tripDistance) * coefficients.get("t.distance_T");
         }
 
         private double getPersonPredictor(MitoPerson pp, Map<String, Double> coefficients) {
@@ -282,7 +272,7 @@ public class ModeChoice extends Module {
 
             // Has drivers Licence
             if(pp.hasDriversLicense()) {
-                predictor += coefficients.getOrDefault("p.driversLicence",0.);
+                predictor += coefficients.getOrDefault("p.driversLicense",0.);
             }
 
             // Has bicycle
@@ -291,28 +281,21 @@ public class ModeChoice extends Module {
             }
 
             // Number of mandatory trips
-            int trips_HBW = pp.getTripsForPurpose(Purpose.HBW).size();
+            int workTrips = pp.getTripsForPurpose(Purpose.HBW).size();
 
-            if (trips_HBW == 0) {
-                predictor += coefficients.getOrDefault("p.trips_HBW_0",0.);
-            } else if (trips_HBW < 5) {
-                predictor += coefficients.getOrDefault("p.trips_HBW_1234",0.);
-                predictor += coefficients.getOrDefault("p.isMobile_HBW",0.);
+            if (workTrips == 0) {
+                predictor += coefficients.getOrDefault("p.workTrips_0",0.);
+            } else if (workTrips < 5) {
+                predictor += coefficients.getOrDefault("p.workTrips_1234",0.);
             } else {
-                predictor += coefficients.getOrDefault("p.trips_HBW_5",0.);
-                predictor += coefficients.getOrDefault("p.isMobile_HBW",0.);
+                predictor += coefficients.getOrDefault("p.workTrips_5",0.);
             }
 
-            int trips_HBE = pp.getTripsForPurpose(Purpose.HBE).size();
-
-            if (trips_HBE == 0) {
-                predictor += 0;
-            } else if (trips_HBE < 5) {
-                predictor += coefficients.getOrDefault("p.trips_HBE_1324",0.);
-                predictor += coefficients.getOrDefault("p.isMobile_HBE",0.);
-            } else {
-                predictor += coefficients.getOrDefault("p.trips_HBE_5",0.);
-                predictor += coefficients.getOrDefault("p.isMobile_HBE",0.);
+            int eduTrips = pp.getTripsForPurpose(Purpose.HBE).size();
+            if (eduTrips >= 5) {
+                predictor += coefficients.getOrDefault("p.eduTrips_5",0.);
+            } else if (eduTrips > 0) {
+                predictor += coefficients.getOrDefault("p.eduTrips_1234",0.);
             }
 
             // Usual commute mode
