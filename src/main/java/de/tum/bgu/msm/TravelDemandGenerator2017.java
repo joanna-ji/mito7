@@ -209,11 +209,11 @@ public final class TravelDemandGenerator2017 {
         logger.info("Running Module: Discretionary trip generation");
         discretionaryTripGeneration.run();
 
-        logger.info("Running Module: Trip distribution (discretionary)");
-        tripDistribution.run();
-
         logger.info("Running Module: Mode Restriction");
         modeRestriction.run();
+
+        logger.info("Running Module: Trip distribution (discretionary)");
+        tripDistribution.run();
 
         logger.info("Running Module: Trip to Mode Assignment (Mode Choice)");
         modeChoice.run();

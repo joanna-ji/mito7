@@ -188,28 +188,6 @@ public class ModeRestrictionChoice extends Module {
             predictor += coefficients.get("p.ownBicycle");
         }
 
-        // Trip distance min, max
-        List<MitoTrip> trips = pp.getTrips();
-        double maxTripDistance = Double.MIN_VALUE;
-        double minTripDistance = Double.MAX_VALUE;
-
-        for (MitoTrip trip : trips) {
-
-            Location origin = trip.getTripOrigin();
-            Location destination = trip.getTripDestination();
-
-            assert origin != null && destination != null;
-
-            double tripDistance = dataSet.getTravelDistancesNMT().
-                    getTravelDistance(origin.getZoneId(), destination.getZoneId());
-
-            minTripDistance = Math.min(minTripDistance, tripDistance);
-            maxTripDistance = Math.max(maxTripDistance, tripDistance);
-        }
-
-        predictor += Math.log(minTripDistance) * coefficients.get("p.km_min_T");
-        predictor += Math.log(maxTripDistance) * coefficients.get("p.km_max_T");
-
         // Mito occupation Status
         MitoOccupationStatus occupationStatus = pp.getMitoOccupationStatus();
         if (occupationStatus.equals(MitoOccupationStatus.STUDENT)) {
