@@ -27,6 +27,9 @@ public class MitoPerson implements Id {
     private Mode dominantCommuteMode;
     private ModeRestriction modeRestriction;
 
+    private boolean transitPass;
+    private boolean disable;
+
     public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense, boolean ownBicycle) {
         this.id = id;
         this.household = hh;
@@ -127,6 +130,14 @@ public class MitoPerson implements Id {
 
     public double getTravelTimeBudgetForPurpose(Purpose purpose) {
         return travelTimeBudgetByPurpose.get(purpose) == null ? 0. : travelTimeBudgetByPurpose.get(purpose) ;
+    }
+
+    public boolean hasTransitPass() {
+        return transitPass;
+    }
+
+    public boolean isDisable() {
+        return disable;
     }
 
 

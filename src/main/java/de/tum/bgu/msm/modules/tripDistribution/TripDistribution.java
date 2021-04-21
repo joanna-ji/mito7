@@ -6,10 +6,7 @@ import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.MitoHousehold;
 import de.tum.bgu.msm.data.Purpose;
 import de.tum.bgu.msm.modules.Module;
-import de.tum.bgu.msm.modules.tripDistribution.destinationChooser.HbeHbwDistribution;
-import de.tum.bgu.msm.modules.tripDistribution.destinationChooser.HbsHbrHboDistribution;
-import de.tum.bgu.msm.modules.tripDistribution.destinationChooser.NhbwNhboDistribution;
-import de.tum.bgu.msm.modules.tripDistribution.destinationChooser.RrtDistribution;
+import de.tum.bgu.msm.modules.tripDistribution.destinationChooser.*;
 import de.tum.bgu.msm.util.concurrent.ConcurrentExecutor;
 import de.tum.bgu.msm.util.matrices.IndexedDoubleMatrix2D;
 import org.apache.commons.lang3.tuple.Triple;
@@ -33,6 +30,8 @@ public final class TripDistribution extends Module {
     private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
     private final static EnumSet<Purpose> MANDATORY_PURPOSES = EnumSet.of(HBW,HBE);
     private final static EnumSet<Purpose> DISCRETIONARY_PURPOSES = EnumSet.of(HBS,HBR,HBO,RRT,NHBW,NHBO);
+    private final static EnumSet<Purpose> HOMEBASEDDISCRETIONARY_PURPOSES = EnumSet.of(HBS,HBR,HBO,RRT);
+    private final static EnumSet<Purpose> NONHOMEBASED_PURPOSES = EnumSet.of(NHBW,NHBO);
 
     public final static EnumMap<Purpose, AtomicIntegerArray> distributedTrips = new EnumMap<>(Purpose.class);
     public final static EnumMap<Purpose, AtomicDoubleArray> distributedDistances = new EnumMap<>(Purpose.class);
@@ -54,6 +53,12 @@ public final class TripDistribution extends Module {
     private final List<Tuple<Integer, List<MitoHousehold>>> partitions = new ArrayList<>();
 
     private boolean completedMandatory = false;
+    private boolean completedHomeBasedDiscretionary = false;
+
+    public final static AtomicInteger countNoDestinationErrorTrips = new AtomicInteger(0);
+    public final static AtomicInteger countOriginPriorTrips = new AtomicInteger(0);
+    public final static AtomicInteger countOriginOccupation = new AtomicInteger(0);
+    public final static AtomicInteger countOriginRandom = new AtomicInteger(0);
 
     public TripDistribution(DataSet dataSet) {
         super(dataSet);
@@ -104,6 +109,86 @@ public final class TripDistribution extends Module {
             logger.info("Discretionary distribution statistics...");
             distributionStatistics(DISCRETIONARY_PURPOSES);
         }
+    }
+
+    public void runWithMoped() {
+        if(!completedMandatory) {
+
+            logger.info("Creating partitions...");
+            createPartitions();
+
+            logger.info("Setting counters and matrices to zero...");
+            zeroCountersAndMatrices(PURPOSES);
+
+            logger.info("Building destination choice utility matrices...");
+            buildMatrices(PURPOSES);
+
+            if(MANDATORY_PURPOSES.contains(calibrationPurpose)) runCalibration(calibrationPurpose);
+            else {
+                logger.info("Distributing HBW and HBE trips...");
+                distributeMandatoryTrips(MANDATORY_PURPOSES);
+            }
+
+            logger.info("Mandatory distribution statistics...");
+            distributionStatistics(MANDATORY_PURPOSES);
+
+            completedMandatory = true;
+        } else if(!completedHomeBasedDiscretionary) {
+            if(EnumSet.of(HBS,HBR,HBO).contains(calibrationPurpose)) runCalibration(calibrationPurpose);
+            else {
+                logger.info("Distributing HBS, HBR, and HBO trips...");
+                distributeHbsHbrHboTrips(EnumSet.of(HBS,HBR,HBO));
+
+                if(RRT.equals(calibrationPurpose)) runCalibration(calibrationPurpose);
+                else {
+                    logger.info("Distributing RRT trips...");
+                    distributeRrtTrips();
+                }
+            }
+
+            logger.info("Home Based Discretionary distribution statistics...");
+            distributionStatistics(HOMEBASEDDISCRETIONARY_PURPOSES);
+
+            completedHomeBasedDiscretionary = true;
+        }else{
+            if(EnumSet.of(NHBW,NHBO).contains(calibrationPurpose)) runCalibration(calibrationPurpose);
+            else {
+                logger.info("Distributing NHBW and NHBO trips...");
+                distributeNhbwNhboTrips(EnumSet.of(NHBW,NHBO));
+            }
+            logger.info("Non Home Based Discretionary distribution statistics...");
+            distributionStatistics(NONHOMEBASED_PURPOSES);
+        }
+    }
+
+    //for Moped
+    public void setUp() {
+        logger.info("Building initial destination choice utility matrices...");
+        buildMatrices(NONHOMEBASED_PURPOSES);
+
+        logger.info("finding origins for non home based trips...");
+        final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+
+        ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(numberOfThreads);
+        List<Callable<Void>> nonHomeBasedTasks = new ArrayList<>();
+
+        for (Purpose purpose : NONHOMEBASED_PURPOSES){
+            for (final Tuple<Integer, List<MitoHousehold>> partition : partitions) {
+                if (purpose.equals(NHBW)){
+                    nonHomeBasedTasks.add(new NhbwNhboOrigin(NHBW, dataSet, partition.getFirst(), partition.getSecond()));
+                } else if (purpose.equals(NHBO)){
+                    nonHomeBasedTasks.add(new NhbwNhboOrigin(NHBO, dataSet, partition.getFirst(), partition.getSecond()));
+                }
+            }
+        }
+        executor.submitTasksAndWaitForCompletion(nonHomeBasedTasks);
+        logger.error(countNoDestinationErrorTrips + " trips have no mito destination zones. " +
+                "Maybe because Moped selected zones is not in the mito zone systems " +
+                "(no population zones as HBR/HBO destination) ");
+        logger.info(countOriginPriorTrips + " trips origin --> prior trips. ");
+        logger.info(countOriginOccupation + " trips origin --> occupation zone. ");
+        logger.info(countOriginRandom + " trips origin --> random select. ");
+
     }
 
     private void createPartitions() {

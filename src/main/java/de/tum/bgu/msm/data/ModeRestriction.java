@@ -1,6 +1,9 @@
 package de.tum.bgu.msm.data;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
+
 import static de.tum.bgu.msm.data.Mode.*;
 
 public enum ModeRestriction implements Id {
@@ -57,5 +60,17 @@ public enum ModeRestriction implements Id {
             default:
                 return null;
         }
+    }
+
+    public static List<ModeRestriction> getWalkModeRestriction(){
+        List<ModeRestriction> list = new ArrayList<>();
+        list.add(AutoWalk);
+        list.add(AutoPtWalk);
+        list.add(AutoPtCycleWalk);
+        list.add(PtWalk);
+        list.add(PtCycleWalk);
+        list.add(CycleWalk);
+        list.add(Walk);
+        return list;
     }
 }

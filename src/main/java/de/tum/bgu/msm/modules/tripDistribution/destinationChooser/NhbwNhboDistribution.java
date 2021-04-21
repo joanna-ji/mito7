@@ -61,22 +61,24 @@ public final class NhbwNhboDistribution extends RandomizableConcurrentFunction<V
         for (MitoHousehold household : householdPartition) {
             for(MitoPerson person : household.getPersons().values()) {
                 for (MitoTrip trip : person.getTripsForPurpose(purpose)) {
-                    Location origin = findOrigin(person);
-                    trip.setTripOrigin(origin);
-                    if (origin == null) {
-                        logger.debug("No origin found for trip" + trip);
-                        failedTripsCounter++;
-                        continue;
+                    if (!Mode.walk.equals(trip.getTripMode())) {
+                        Location origin = findOrigin(person);
+                        trip.setTripOrigin(origin);
+                        if (origin == null) {
+                            logger.debug("No origin found for trip" + trip);
+                            failedTripsCounter++;
+                            continue;
+                        }
+                        MitoZone destination = findDestination(origin.getZoneId());
+                        trip.setTripDestination(destination);
+                        if (destination == null) {
+                            logger.debug("No destination found for trip" + trip);
+                            failedTripsCounter++;
+                            continue;
+                        }
+                        distributedTripsCounter++;
+                        distributedDistanceCounter += travelDistances.getTravelDistance(origin.getZoneId(), destination.getZoneId());
                     }
-                    MitoZone destination = findDestination(origin.getZoneId());
-                    trip.setTripDestination(destination);
-                    if (destination == null) {
-                        logger.debug("No destination found for trip" + trip);
-                        failedTripsCounter++;
-                        continue;
-                    }
-                    distributedTripsCounter++;
-                    distributedDistanceCounter += travelDistances.getTravelDistance(origin.getZoneId(),destination.getZoneId());
                 }
             }
         }

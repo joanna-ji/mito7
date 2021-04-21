@@ -37,6 +37,7 @@ public class Properties {
     public static final String MODE_RESTRICTION_COEFFICIENTS = "modeRestriction.coeffs";
     public static final String MODE_RESTRICTION_CONSTANTS = "modeRestriction.ASCs";
     public static final String MODE_CHOICE_COEFFICIENTS = "modeChoice.coeffs";
+    public static final String MODE_CHOICE_COEFFICIENTS_NONWALK = "modeChoice.coeffs.nonWalk";
 
     public static final String BUS_TRAVEL_TIME_SKIM = "bus.travelTime";
     public static final String TRAM_METRO_TRAVEL_TIME_SKIM = "tramMetro.travelTime";
@@ -92,4 +93,8 @@ public class Properties {
     public static final String MC_CALIBRATON_CONSTANTS_FILE = "mc.calibration.constants.file";
     public static final String MC_CALIBRATON_REGIONS_FILE = "mc.calibration.regions.file";
     public static final String MC_CALIBRATION_ITERATIONS = "mc.calibration.iterations";
+    public static final String MOPED_PROPERTIES = "moped.properties";
+    public static final String RUN_MOPED = "run.moped";
+    public static final String BASE_DIRECTORY = "base.directory";
+
 }

@@ -1,7 +1,6 @@
 package de.tum.bgu.msm.data;
 
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.*;
 
 import static de.tum.bgu.msm.modules.tripGeneration.AttractionCalculator.ExplanatoryVariable;
 
@@ -29,5 +28,22 @@ public enum Purpose implements Id {
 
     public Double getTripAttractionForVariable(ExplanatoryVariable variable) {
         return this.tripAttractionByVariable.get(variable);
+    }
+
+    public static List<Purpose> getDiscretionaryPurposes(){
+        List<Purpose> list = new ArrayList<>();
+        list.add(HBS);
+        list.add(HBO);
+        list.add(HBR);
+        list.add(NHBO);
+        list.add(NHBW);
+        return list;
+    }
+
+    public static List<Purpose> getMandatoryPurposes(){
+        List<Purpose> list = new ArrayList<>();
+        list.add(HBW);
+        list.add(HBE);
+        return list;
     }
 }

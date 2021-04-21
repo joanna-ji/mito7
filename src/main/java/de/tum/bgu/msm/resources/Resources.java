@@ -194,6 +194,10 @@ public class Resources {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_CHOICE_COEFFICIENTS));
     }
 
+    public Path getModeChoiceCoefficientsNonWalk() {
+        return baseDirectory.resolve(Resources.instance.getString(MODE_CHOICE_COEFFICIENTS_NONWALK));
+    }
+
     public Path getTripGenerationCoefficientsHurdleBinaryLogit() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TG_BINARY_LOGIT_COEFFICIENTS));
     }

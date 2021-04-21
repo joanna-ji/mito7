@@ -116,7 +116,7 @@ public class SummarizeData {
         LOGGER.info("  Writing trips file");
         String file = Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + dataSet.getYear() + "/microData/trips.csv";
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(file, false);
-        pwh.println("hh.id,p.ID,t.id,origin,originX,originY,destination,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,mode,departure_day,departure_time,departure_time_return");
+        pwh.println("hh.id,p.ID,t.id,origin,originPAZ,originX,originY,destination,destinationPAZ,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,distanceMoped,mode,departure_day,departure_time,departure_time_return");
         Collection<MitoTrip> tripsToPrint = dataSet.getTrips().values(); //.stream().filter(trip -> trip.getTripPurpose().equals(Purpose.HBO)).collect(Collectors.toUnmodifiableList());
         for (MitoTrip trip : tripsToPrint) {
             pwh.print(trip.getPerson().getHousehold().getId());
@@ -131,6 +131,9 @@ public class SummarizeData {
                 originId = String.valueOf(origin.getZoneId());
             }
             pwh.print(originId);
+            pwh.print(",");
+
+            pwh.print(trip.getTripOriginMopedZoneId());
             pwh.print(",");
 
             if(origin instanceof MicroLocation){
@@ -161,6 +164,9 @@ public class SummarizeData {
             }
             pwh.print(destinationId);
             pwh.print(",");
+            pwh.print(trip.getTripDestinationMopedZoneId());
+            pwh.print(",");
+
             if(destination instanceof MicroLocation){
                 pwh.print(((MicroLocation) destination).getCoordinate().x);
                 pwh.print(",");
@@ -205,6 +211,8 @@ public class SummarizeData {
             } else {
                 pwh.print("NA,NA,NA,NA,NA,NA");
             }
+            pwh.print(",");
+            pwh.print(trip.getMopedTripDistance());
             pwh.print(",");
             pwh.print(trip.getTripMode());
             pwh.print(",");
