@@ -31,7 +31,7 @@ public class MitoTrip implements Id {
     private Person matsimPerson;
 
     //for health model
-    private double matsimTravelTime;
+    private double matsimTravelTimeInMinutes;
     private double lightInjuryRisk;
     private double severeInjuryRisk;
     private double pmExposure;
@@ -169,14 +169,6 @@ public class MitoTrip implements Id {
         this.mopedTripDistance = mopedTripDistance;
     }
 
-    public double getMatsimTravelTime() {
-        return matsimTravelTime;
-    }
-
-    public void setMatsimTravelTime(double matsimTravelTime) {
-        this.matsimTravelTime = matsimTravelTime;
-    }
-
     public double getLightInjuryRisk() {
         return lightInjuryRisk;
     }
@@ -207,5 +199,13 @@ public class MitoTrip implements Id {
 
     public void setNo2Exposure(double no2Exposure) {
         this.no2Exposure = no2Exposure;
+    }
+
+    public double getMatsimTravelTimeInMinutes() {
+        return matsimTravelTimeInMinutes;
+    }
+
+    public void setMatsimTravelTimeInMinutes(double matsimTravelTimeInMinutes) {
+        this.matsimTravelTimeInMinutes = matsimTravelTimeInMinutes;
     }
 }
