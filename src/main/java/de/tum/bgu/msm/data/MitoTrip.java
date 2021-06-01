@@ -2,6 +2,9 @@ package de.tum.bgu.msm.data;
 
 import org.matsim.api.core.v01.population.Person;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Holds trip objects for the Microsimulation Transport Orchestrator (MITO)
  *
@@ -34,8 +37,8 @@ public class MitoTrip implements Id {
     private double matsimTravelTimeInMinutes;
     private double lightInjuryRisk;
     private double severeInjuryRisk;
-    private double pmExposure;
-    private double no2Exposure;
+    private Map<String, Double> exposureMap = new HashMap<>();
+
 
     public MitoTrip(int tripId, Purpose tripPurpose) {
         this.tripId = tripId;
@@ -185,27 +188,19 @@ public class MitoTrip implements Id {
         this.severeInjuryRisk = severeInjuryRisk;
     }
 
-    public double getPmExposure() {
-        return pmExposure;
-    }
-
-    public void setPmExposure(double pmExposure) {
-        this.pmExposure = pmExposure;
-    }
-
-    public double getNo2Exposure() {
-        return no2Exposure;
-    }
-
-    public void setNo2Exposure(double no2Exposure) {
-        this.no2Exposure = no2Exposure;
-    }
-
     public double getMatsimTravelTimeInMinutes() {
         return matsimTravelTimeInMinutes;
     }
 
     public void setMatsimTravelTimeInMinutes(double matsimTravelTimeInMinutes) {
         this.matsimTravelTimeInMinutes = matsimTravelTimeInMinutes;
+    }
+
+    public Map<String, Double> getExposureMap() {
+        return exposureMap;
+    }
+
+    public void setExposureMap(Map<String, Double> exposureMap) {
+        this.exposureMap = exposureMap;
     }
 }
