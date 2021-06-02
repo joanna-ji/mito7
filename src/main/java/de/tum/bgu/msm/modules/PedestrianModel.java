@@ -77,7 +77,6 @@ public class PedestrianModel {
         mopedModel.runAgentBasedModelForHomeBasedDiscretionaryTrips();
         feedDataBackToMito(Purpose.getHomeBasedDiscretionaryPurposes());
         writeOutMoPeDTrips(dataSet, Resources.instance.getString(Properties.SCENARIO_NAME),"hbdiscretionary");
-
     }
 
     public void runMopedNonHomeBased() {
@@ -312,6 +311,8 @@ public class PedestrianModel {
 
                                     if(Purpose.getHomeBasedDiscretionaryPurposes().contains(mopedTrip.getTripPurpose())){
                                         mopedTrip.setTripOrigin(mopedHousehold.getHomeZone());
+                                        tt.setTripOriginMopedZoneId(mopedHousehold.getHomeZone().getZoneId());
+                                        tt.setTripOrigin(hh);
                                     }
 
                                     mopedPerson.addTrip(mopedTrip);

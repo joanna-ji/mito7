@@ -244,7 +244,7 @@
         </dependency>
         <dependency>
             <groupId>de.tum.bgu.msm</groupId>
-            <artifactId>MoPeD_Java</artifactId>
+            <artifactId>moped_java</artifactId>
             <version>0.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
