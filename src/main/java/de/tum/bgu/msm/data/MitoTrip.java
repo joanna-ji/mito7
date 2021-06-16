@@ -34,9 +34,9 @@ public class MitoTrip implements Id {
     private Person matsimPerson;
 
     //for health model
-    private double matsimTravelTimeInMinutes;
     private double lightInjuryRisk;
     private double severeInjuryRisk;
+    private double physicalActivityMmetHours;
     private Map<String, Double> exposureMap = new HashMap<>();
 
 
@@ -188,12 +188,12 @@ public class MitoTrip implements Id {
         this.severeInjuryRisk = severeInjuryRisk;
     }
 
-    public double getMatsimTravelTimeInMinutes() {
-        return matsimTravelTimeInMinutes;
+    public double getPhysicalActivityMmetHours() {
+        return physicalActivityMmetHours;
     }
 
-    public void setMatsimTravelTimeInMinutes(double matsimTravelTimeInMinutes) {
-        this.matsimTravelTimeInMinutes = matsimTravelTimeInMinutes;
+    public void setPhysicalActivityMmetHours(double mmetHours) {
+        this.physicalActivityMmetHours = mmetHours;
     }
 
     public Map<String, Double> getExposureMap() {
