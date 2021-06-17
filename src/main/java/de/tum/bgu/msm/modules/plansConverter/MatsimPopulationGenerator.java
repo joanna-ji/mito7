@@ -53,8 +53,8 @@ public final class MatsimPopulationGenerator extends Module {
             try {
                 if (modeSet.contains(trip.getTripMode()) && !trip.getTripPurpose().equals(Purpose.RRT)) {
                     Person person = factory.createPerson(Id.createPersonId(trip.getId()));
-                    person.getAttributes().putAttribute("age",trip.getPerson().getAge());
-                    person.getAttributes().putAttribute("sex",trip.getPerson().getMitoGender());
+                    person.getAttributes().putAttribute("age",trip.getPerson().getAge()>100?100:trip.getPerson().getAge());
+                    person.getAttributes().putAttribute("sex",trip.getPerson().getMitoGender().equals(MitoGender.MALE)?"m":"f");
                     trip.setMatsimPerson(person);
 
                     Plan plan = factory.createPlan();
