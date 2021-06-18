@@ -83,6 +83,7 @@ public final class NhbwNhboOrigin extends RandomizableConcurrentFunction<Void> {
             MitoTrip selectedTrip = MitoUtil.select(random, possibleBaseTrips);
             trip.setTripOrigin(selectedTrip.getTripDestination());
             trip.setTripOriginMopedZoneId(selectedTrip.getTripDestinationMopedZoneId());
+            trip.setOriginMopedZoneCoord(selectedTrip.getOriginMopedZoneCoord());
             TripDistribution.countOriginPriorTrips.incrementAndGet();
             return;
         }

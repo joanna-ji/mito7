@@ -224,6 +224,7 @@ public class PedestrianModel {
                         if(mopedTrip.isWalkMode()){
                             if(mopedTrip.getTripOrigin()!=null){
                                 mitoTrip.setTripOriginMopedZoneId(mopedTrip.getTripOrigin().getZoneId());
+                                mitoTrip.setOriginMopedZoneCoord(CoordUtils.createCoord(((Geometry)(mopedTrip.getTripOrigin().getShapeFeature().getDefaultGeometry())).getCentroid().getCoordinate()));
                             }else{
                                 logger.warn("trip id: " + mopedTrip.getTripId()+ " purpose: " + mopedTrip.getTripPurpose() + " has no origin, but is walk mode.");
                                 continue;
@@ -232,6 +233,7 @@ public class PedestrianModel {
                             if(mopedTrip.getTripDestination()!=null) {
                                 mitoTrip.setTripDestination(dataSet.getZones().get(mopedTrip.getTripDestination().getMitoZoneId()));
                                 mitoTrip.setTripDestinationMopedZoneId(mopedTrip.getTripDestination().getZoneId());
+                                mitoTrip.setDestinationMopedZoneCoord(CoordUtils.createCoord(((Geometry)(mopedTrip.getTripDestination().getShapeFeature().getDefaultGeometry())).getCentroid().getCoordinate()));
                                 mitoTrip.setMopedTripDistance(mopedTrip.getTripDistance());
                                 //TODO: travel time budget?
                                 //double newTravelBudget = dataSet.getHouseholds().get(mopedTrip.getPerson().getMopedHousehold().getId()).getTravelTimeBudgetForPurpose(mitoTrip.getTripPurpose()) - mopedTrip.getTripDistance()/83.3;//average walk speed 5km/hr
@@ -312,6 +314,7 @@ public class PedestrianModel {
                                     if(Purpose.getHomeBasedDiscretionaryPurposes().contains(mopedTrip.getTripPurpose())){
                                         mopedTrip.setTripOrigin(mopedHousehold.getHomeZone());
                                         tt.setTripOriginMopedZoneId(mopedHousehold.getHomeZone().getZoneId());
+                                        tt.setOriginMopedZoneCoord(CoordUtils.createCoord(((Geometry)(mopedHousehold.getHomeZone().getShapeFeature().getDefaultGeometry())).getCentroid().getCoordinate()));
                                         tt.setTripOrigin(hh);
                                     }
 

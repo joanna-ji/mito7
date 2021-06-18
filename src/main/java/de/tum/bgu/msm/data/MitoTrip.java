@@ -1,5 +1,6 @@
 package de.tum.bgu.msm.data;
 
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.population.Person;
 
 import java.util.HashMap;
@@ -29,6 +30,8 @@ public class MitoTrip implements Id {
 
     private int tripOriginMopedZoneId;
     private int tripDestinationMopedZoneId;
+    private Coord originMopedZoneCoord;
+    private Coord destinationMopedZoneCoord;
     private double mopedTripDistance;
 
     private Person matsimPerson;
@@ -229,5 +232,21 @@ public class MitoTrip implements Id {
 
     public void setMatsimTravelDistance(double matsimTravelDistance) {
         this.matsimTravelDistance = matsimTravelDistance;
+    }
+
+    public Coord getOriginMopedZoneCoord() {
+        return originMopedZoneCoord;
+    }
+
+    public void setOriginMopedZoneCoord(Coord originMopedZoneCoord) {
+        this.originMopedZoneCoord = originMopedZoneCoord;
+    }
+
+    public Coord getDestinationMopedZoneCoord() {
+        return destinationMopedZoneCoord;
+    }
+
+    public void setDestinationMopedZoneCoord(Coord destinationMopedZoneCoord) {
+        this.destinationMopedZoneCoord = destinationMopedZoneCoord;
     }
 }
