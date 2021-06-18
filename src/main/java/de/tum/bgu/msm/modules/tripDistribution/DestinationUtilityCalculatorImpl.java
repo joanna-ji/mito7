@@ -19,7 +19,7 @@ public class DestinationUtilityCalculatorImpl implements DestinationUtilityCalcu
     private final static double[] TRAVEL_DISTANCE_PARAM_HBO = {-0.004626, -0.003937, -0.003739};
     private final static double IMPEDANCE_PARAM_HBO = 53;
 
-    private final static double TRAVEL_DISTANCE_PARAM_RRT = -0.01095;
+    private final static double TRAVEL_DISTANCE_PARAM_RRT = -0.05204;
     private final static double IMPEDANCE_PARAM_RRT = 12;
 
     private final static double[] TRAVEL_DISTANCE_PARAM_NHBW = {-0.016240, -0.012459, -0.009441}; // -0.012747;
