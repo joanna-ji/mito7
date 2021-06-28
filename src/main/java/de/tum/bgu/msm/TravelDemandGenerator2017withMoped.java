@@ -1,6 +1,9 @@
 package de.tum.bgu.msm;
 
 import de.tum.bgu.msm.data.DataSet;
+import de.tum.bgu.msm.data.Day;
+import de.tum.bgu.msm.data.MitoTrip;
+import de.tum.bgu.msm.data.Mode;
 import de.tum.bgu.msm.io.output.SummarizeData;
 import de.tum.bgu.msm.io.output.SummarizeDataToVisualize;
 import de.tum.bgu.msm.io.output.TripGenerationWriter;
@@ -21,6 +24,9 @@ import de.tum.bgu.msm.modules.tripGeneration.TripsByPurposeGeneratorFactoryHurdl
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
 import org.apache.log4j.Logger;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * Generates travel demand for the Microscopic Transport Orchestrator (MITO)
@@ -254,6 +260,18 @@ public final class TravelDemandGenerator2017withMoped {
 
         TripGenerationWriter.writeTripsByPurposeAndZone(dataSet, scenarioName);
         SummarizeDataToVisualize.writeFinalSummary(dataSet, scenarioName);
+
+        for(Day day : Day.values()){
+            for(Mode mode : Mode.values()){
+                Collection<MitoTrip> tripsToPrint = dataSet.getTrips().values().stream().filter(tt -> tt.getDepartureDay().equals(day) & tt.getTripMode().equals(mode)).collect(Collectors.toList());
+                if(tripsToPrint.size()>0){
+                    SummarizeData.writeOutTripsByDayByMode(dataSet,scenarioName,day,mode,tripsToPrint);
+                }else{
+                    logger.info("No trips for mode: " + mode + ",day: " + day);
+                }
+
+            }
+        }
 
         if (Resources.instance.getBoolean(Properties.PRINT_MICRO_DATA, true)) {
             SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);

@@ -232,7 +232,137 @@ public class SummarizeData {
         pwh.close();
     }
 
+    public static void writeOutTripsByDayByMode(DataSet dataSet, String scenarioName, Day day, Mode mode, Collection<MitoTrip> tripsToPrint) {
+        String outputSubDirectory = "scenOutput/" + scenarioName + "/";
 
+        LOGGER.info("  Writing trips file (day " + day + ", mode " + mode + ")");
+        String file = Resources.instance.getBaseDirectory().toString() + "/" + outputSubDirectory + dataSet.getYear() + "/microData/trips_" + day + "_" + mode + ".csv";
+        PrintWriter pwh = MitoUtil.openFileForSequentialWriting(file, false);
+        pwh.println("hh.id,p.ID,t.id,origin,originPAZ,originX,originY,destination,destinationPAZ,destinationX,destinationY,t.purpose,t.distance,t.distance_auto,time_auto,time_bus,time_train,time_tram_metro,distanceMoped,mode,departure_day,departure_time,departure_time_return");
+
+        for (MitoTrip trip : tripsToPrint) {
+            pwh.print(trip.getPerson().getHousehold().getId());
+            pwh.print(",");
+            pwh.print(trip.getPerson().getId());
+            pwh.print(",");
+            pwh.print(trip.getId());
+            pwh.print(",");
+            Location origin = trip.getTripOrigin();
+            String originId = "null";
+            if(origin != null) {
+                originId = String.valueOf(origin.getZoneId());
+            }
+            pwh.print(originId);
+            pwh.print(",");
+
+            pwh.print(trip.getTripOriginMopedZoneId());
+            pwh.print(",");
+
+            if(origin instanceof MicroLocation){
+                pwh.print(((MicroLocation) origin).getCoordinate().x);
+                pwh.print(",");
+                pwh.print(((MicroLocation) origin).getCoordinate().y);
+                pwh.print(",");
+            } else if(trip.getOriginMopedZoneCoord()!=null){
+                pwh.print(trip.getOriginMopedZoneCoord().getX());
+                pwh.print(",");
+                pwh.print(trip.getOriginMopedZoneCoord().getY());
+                pwh.print(",");
+            }else{
+                if (Resources.instance.getBoolean(Properties.FILL_MICRO_DATA_WITH_MICROLOCATION, false) &&
+                        origin != null){
+                    Coord coordinate = CoordUtils.createCoord(dataSet.getZones().get(trip.getTripOrigin().getZoneId()).getRandomCoord(MitoUtil.getRandomObject()));
+                    pwh.print(coordinate.getX());
+                    pwh.print(",");
+                    pwh.print(coordinate.getY());
+                    pwh.print(",");
+                } else {
+                    pwh.print("null");
+                    pwh.print(",");
+                    pwh.print("null");
+                    pwh.print(",");
+                }
+            }
+
+            Location destination = trip.getTripDestination();
+            String destinationId = "null";
+            if(destination != null) {
+                destinationId = String.valueOf(destination.getZoneId());
+            }
+            pwh.print(destinationId);
+            pwh.print(",");
+            pwh.print(trip.getTripDestinationMopedZoneId());
+            pwh.print(",");
+
+            if(destination instanceof MicroLocation){
+                pwh.print(((MicroLocation) destination).getCoordinate().x);
+                pwh.print(",");
+                pwh.print(((MicroLocation) destination).getCoordinate().y);
+                pwh.print(",");
+            }else if(trip.getDestinationMopedZoneCoord()!=null){
+                pwh.print(trip.getDestinationMopedZoneCoord().getX());
+                pwh.print(",");
+                pwh.print(trip.getDestinationMopedZoneCoord().getY());
+                pwh.print(",");
+            }else{
+                if (Resources.instance.getBoolean(Properties.FILL_MICRO_DATA_WITH_MICROLOCATION, false) &&
+                        destination != null){
+                    Coord coordinate = CoordUtils.createCoord(dataSet.getZones().get(trip.getTripDestination().getZoneId()).getRandomCoord(MitoUtil.getRandomObject()));
+                    pwh.print(coordinate.getX());
+                    pwh.print(",");
+                    pwh.print(coordinate.getY());
+                    pwh.print(",");
+                } else {
+                    pwh.print("null");
+                    pwh.print(",");
+                    pwh.print("null");
+                    pwh.print(",");
+                }
+            }
+
+            pwh.print(trip.getTripPurpose());
+            pwh.print(",");
+            if(origin != null && destination != null) {
+                double distance = dataSet.getTravelDistancesNMT().getTravelDistance(origin.getZoneId(), destination.getZoneId());
+                pwh.print(distance);
+                pwh.print(",");
+                double distanceAuto = dataSet.getTravelDistancesAuto().getTravelDistance(origin.getZoneId(), destination.getZoneId());
+                pwh.print(distanceAuto);
+                pwh.print(",");
+                double timeAuto = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "car");
+                pwh.print(timeAuto);
+                pwh.print(",");
+                double timeBus = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "bus");
+                pwh.print(timeBus);
+                pwh.print(",");
+                double timeTrain = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "train");
+                pwh.print(timeTrain);
+                pwh.print(",");
+                double timeTramMetro = dataSet.getTravelTimes().getTravelTime(origin, destination, dataSet.getPeakHour(), "tramMetro");
+                pwh.print(timeTramMetro);
+            } else {
+                pwh.print("NA,NA,NA,NA,NA,NA");
+            }
+            pwh.print(",");
+            pwh.print(trip.getMopedTripDistance());
+            pwh.print(",");
+            pwh.print(trip.getTripMode());
+            pwh.print(",");
+            pwh.print(trip.getDepartureDay());
+            pwh.print(",");
+            pwh.print(trip.getDepartureTimeInMinutes());
+            int departureOfReturnTrip = trip.getDepartureInMinutesReturnTrip();
+            if (departureOfReturnTrip != -1){
+                pwh.print(",");
+                pwh.println(departureOfReturnTrip);
+            } else {
+                pwh.print(",");
+                pwh.println("NA");
+            }
+
+        }
+        pwh.close();
+    }
     private static void writeCharts(DataSet dataSet, Purpose purpose, String scenarioName) {
         String outputSubDirectory = "scenOutput/" + scenarioName + "/";
 

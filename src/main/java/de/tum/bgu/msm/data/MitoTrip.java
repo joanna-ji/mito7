@@ -36,16 +36,6 @@ public class MitoTrip implements Id {
 
     private Person matsimPerson;
 
-    //for health model
-    private double lightInjuryRisk;
-    private double severeInjuryRisk;
-    private double fatalityRisk;
-    private double physicalActivityMmetHours;
-    private double matsimTravelTime;
-    private double matsimTravelDistance;
-    private Map<String, Double> exposureMap = new HashMap<>();
-
-
     public MitoTrip(int tripId, Purpose tripPurpose) {
         this.tripId = tripId;
         this.tripPurpose = tripPurpose;
@@ -176,62 +166,6 @@ public class MitoTrip implements Id {
 
     public void setMopedTripDistance(double mopedTripDistance) {
         this.mopedTripDistance = mopedTripDistance;
-    }
-
-    public double getLightInjuryRisk() {
-        return lightInjuryRisk;
-    }
-
-    public void setLightInjuryRisk(double lightInjuryRisk) {
-        this.lightInjuryRisk = lightInjuryRisk;
-    }
-
-    public double getSevereInjuryRisk() {
-        return severeInjuryRisk;
-    }
-
-    public void setSevereInjuryRisk(double severeInjuryRisk) {
-        this.severeInjuryRisk = severeInjuryRisk;
-    }
-
-    public double getPhysicalActivityMmetHours() {
-        return physicalActivityMmetHours;
-    }
-
-    public void setPhysicalActivityMmetHours(double mmetHours) {
-        this.physicalActivityMmetHours = mmetHours;
-    }
-
-    public Map<String, Double> getExposureMap() {
-        return exposureMap;
-    }
-
-    public void setExposureMap(Map<String, Double> exposureMap) {
-        this.exposureMap = exposureMap;
-    }
-
-    public double getFatalityRisk() {
-        return fatalityRisk;
-    }
-
-    public void setFatalityRisk(double fatalityRisk) {
-        this.fatalityRisk = fatalityRisk;
-    }
-
-    public double getMatsimTravelTime() {
-        return matsimTravelTime;
-    }
-
-    public void setMatsimTravelTime(double matsimTravelTime) {
-        this.matsimTravelTime = matsimTravelTime;
-    }
-
-    public double getMatsimTravelDistance() {
-        return matsimTravelDistance;
-    }
-
-    public void setMatsimTravelDistance(double matsimTravelDistance) {
-        this.matsimTravelDistance = matsimTravelDistance;
     }
 
     public Coord getOriginMopedZoneCoord() {
