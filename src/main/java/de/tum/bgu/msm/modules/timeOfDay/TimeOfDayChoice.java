@@ -21,8 +21,8 @@ public final class TimeOfDayChoice extends Module {
     private EnumMap<Purpose, DoubleMatrix1D> durationMinuteCumProbByPurpose;
     private EnumMap<Purpose, DoubleMatrix1D> departureMinuteCumProbByPurpose;
 
-    private final static double SPEED_WALK_M_MIN = 5 * 1000 / 60;
-    private final static double SPEED_BICYCLE_M_MIN = 12 * 1000 / 60;
+    private final static double SPEED_WALK_M_MIN = 83.33;
+    private final static double SPEED_BICYCLE_M_MIN = 200;
 
     private long counter = 0;
     private int issues = 0;
@@ -53,21 +53,21 @@ public final class TimeOfDayChoice extends Module {
             // choose time of day
             if (trip.getTripOrigin() != null && trip.getTripDestination() != null
                     && trip.getTripMode() != null) {
-                int departureTimeInMinutes;
                 if (trip.getTripPurpose().equals(Purpose.RRT)){
-                    departureTimeInMinutes = chooseDepartureTime(trip);
+                    trip.setDepartureInMinutes(chooseDepartureTime(trip));
                 } else {
                     int arrivalTimeInMinutes = chooseArrivalTime(trip);
-                    departureTimeInMinutes = arrivalTimeInMinutes - (int) estimateTravelTimeForDeparture(trip, arrivalTimeInMinutes);
+                    int departureTimeInMinutes = arrivalTimeInMinutes - (int) estimateTravelTimeForDeparture(trip, arrivalTimeInMinutes);
+                    if(departureTimeInMinutes < 0) {
+                        trip.setDepartureInMinutes(departureTimeInMinutes + 1440);
+                    } else {
+                        trip.setDepartureInMinutes(departureTimeInMinutes);
+                    }
+                    if (trip.isHomeBased()) {
+                        trip.setDepartureInMinutesReturnTrip(chooseDepartureTimeForReturnTrip(trip, arrivalTimeInMinutes));
+                    }
                 }
-                //if departure is before midnight
-                if (departureTimeInMinutes < 0) {
-                    departureTimeInMinutes = departureTimeInMinutes + 1440;
-                }
-                trip.setDepartureInMinutes(departureTimeInMinutes);
-                if (trip.isHomeBased()) {
-                    trip.setDepartureInMinutesReturnTrip(chooseDepartureTimeForReturnTrip(trip, departureTimeInMinutes));
-                }
+
 
 
             } else {
