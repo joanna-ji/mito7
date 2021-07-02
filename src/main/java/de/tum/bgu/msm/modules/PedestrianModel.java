@@ -147,11 +147,11 @@ public class PedestrianModel {
         for (final List<MitoTrip> partition : partitions) {
             executor.addTaskToQueue(() -> {
                 try {
-                    partitionCounter.incrementAndGet();
+                    int id = partitionCounter.incrementAndGet();
                     int ttCounter = 0;
                     for (MitoTrip mitoTrip :partition){
                         if (LongMath.isPowerOfTwo(ttCounter)) {
-                            logger.info(ttCounter + " trips done in " + partitionCounter.get());
+                            logger.info(ttCounter + " trips done in " + id);
                         }
                         MopedTrip mopedTrip = mopedModel.getDataSet().getTrips().get(mitoTrip.getId());
                         if(mopedTrip==null){
@@ -208,11 +208,11 @@ public class PedestrianModel {
         for (final List<MopedTrip> partition : partitions) {
             executor.addTaskToQueue(() -> {
                 try {
-                    partitionCounter.incrementAndGet();
+                    int id = partitionCounter.incrementAndGet();
                     int ttCounter = 0;
                     for(MopedTrip mopedTrip : partition){
                         if (LongMath.isPowerOfTwo(ttCounter)) {
-                            logger.info(ttCounter + " trips done in " + partitionCounter.get());
+                            logger.info(ttCounter + " trips done in " + id);
                         }
 
                         if(!purposes.contains(mopedTrip.getTripPurpose())){
@@ -284,7 +284,7 @@ public class PedestrianModel {
         for (final List<MitoHousehold> partition : partitions) {
             executor.addTaskToQueue(() -> {
                 try {
-                    partitionCounter.incrementAndGet();
+                    int id = partitionCounter.incrementAndGet();
                     int hhCounter = 0;
                     for (MitoHousehold hh : partition) {
                         //TODO:need to decide how to narrow down the application area, now only run for munich city area
@@ -292,7 +292,7 @@ public class PedestrianModel {
 //                            continue;
 //                        }
                         if (LongMath.isPowerOfTwo(hhCounter)) {
-                            logger.info(hhCounter + " households done in " + partitionCounter.get());
+                            logger.info(hhCounter + " households done in " + id);
                         }
 
                         if (hasTrip(hh)) {
@@ -312,9 +312,11 @@ public class PedestrianModel {
                                     MopedTrip mopedTrip = convertToMopedTt(tt);
 
                                     if(Purpose.getHomeBasedDiscretionaryPurposes().contains(mopedTrip.getTripPurpose())){
-                                        mopedTrip.setTripOrigin(mopedHousehold.getHomeZone());
-                                        tt.setTripOriginMopedZoneId(mopedHousehold.getHomeZone().getZoneId());
-                                        tt.setOriginMopedZoneCoord(CoordUtils.createCoord(((Geometry)(mopedHousehold.getHomeZone().getShapeFeature().getDefaultGeometry())).getCentroid().getCoordinate()));
+                                        if(mopedHousehold.getHomeZone()!=null){
+                                            mopedTrip.setTripOrigin(mopedHousehold.getHomeZone());
+                                            tt.setTripOriginMopedZoneId(mopedHousehold.getHomeZone().getZoneId());
+                                            tt.setOriginMopedZoneCoord(CoordUtils.createCoord(((Geometry)(mopedHousehold.getHomeZone().getShapeFeature().getDefaultGeometry())).getCentroid().getCoordinate()));
+                                        }
                                         tt.setTripOrigin(hh);
                                     }
 
