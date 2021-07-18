@@ -13,7 +13,7 @@ public enum Mode implements Id {
     privateAV,
     sharedAV,
     pooledTaxi,
-    publicTransport;
+    taxi;
 
     @Override
     public int getId(){
@@ -43,7 +43,7 @@ public enum Mode implements Id {
             case 9:
                 return pooledTaxi;
             case 10:
-                return publicTransport;
+                return taxi;
             default:
                 throw new RuntimeException("Mode for code " + code + "not specified.");
         }
@@ -67,8 +67,8 @@ public enum Mode implements Id {
                 return TransportMode.bike;
             case pooledTaxi:
                 return TransportMode.drt;
-            case publicTransport:
-                return TransportMode.pt;
+            case taxi:
+                return TransportMode.taxi;
             default:
                 return null;
         }

@@ -32,25 +32,25 @@ public enum ModeRestriction implements Id {
             case Auto:
                 return EnumSet.of(autoDriver, autoPassenger);
             case AutoPt:
-                return EnumSet.of(autoDriver, autoPassenger, publicTransport);
+                return EnumSet.of(autoDriver, autoPassenger, train, tramOrMetro, bus, taxi);
             case AutoCycle:
                 return EnumSet.of(autoDriver, autoPassenger, bicycle);
             case AutoWalk:
                 return EnumSet.of(autoDriver, autoPassenger, walk);
             case AutoPtCycle:
-                return EnumSet.of(autoDriver, autoPassenger, publicTransport, bicycle);
+                return EnumSet.of(autoDriver, autoPassenger, train, tramOrMetro, bus, taxi, bicycle);
             case AutoPtWalk:
-                return EnumSet.of(autoDriver, autoPassenger, publicTransport, walk);
+                return EnumSet.of(autoDriver, autoPassenger, train, tramOrMetro, bus, taxi, walk);
             case AutoPtCycleWalk:
-                return EnumSet.of(autoDriver, autoPassenger, publicTransport, bicycle, walk);
+                return EnumSet.of(autoDriver, autoPassenger, train, tramOrMetro, bus, taxi, bicycle, walk);
             case Pt:
-                return EnumSet.of(publicTransport);
+                return EnumSet.of(train, tramOrMetro, bus, taxi);
             case PtCycle:
-                return EnumSet.of(publicTransport, bicycle);
+                return EnumSet.of(train, tramOrMetro, bus, taxi, bicycle);
             case PtWalk:
-                return EnumSet.of(publicTransport, walk);
+                return EnumSet.of(train, tramOrMetro, bus, taxi, walk);
             case PtCycleWalk:
-                return EnumSet.of(publicTransport, bicycle, walk);
+                return EnumSet.of(train, tramOrMetro, bus, taxi, bicycle, walk);
             case Cycle:
                 return EnumSet.of(bicycle);
             case CycleWalk:

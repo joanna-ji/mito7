@@ -115,10 +115,7 @@ public class PersonsReader extends AbstractCsvReader {
                 break;
         }
 
-        // Bicycle ownership (random for now) todo: make not random!
-        boolean ownBicycle = MitoUtil.getRandomObject().nextDouble() < 0.7;
-
-        MitoPerson pp = new MitoPerson(id, hh, mitoOccupationStatus, occupation, age, mitoGender, driversLicense, ownBicycle);
+        MitoPerson pp = new MitoPerson(id, hh, mitoOccupationStatus, occupation, age, mitoGender, driversLicense);
 
         hh.addPerson(pp);
         dataSet.addPerson(pp);

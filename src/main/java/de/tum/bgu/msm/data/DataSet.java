@@ -61,25 +61,6 @@ public class DataSet {
         return this.travelTimes = travelTimes;
     }
 
-    public void setEconomicStatuses() {
-        for (MitoHousehold hh: this.getHouseholds().values()) {
-            int countAdults = (int) hh.getPersons().values().stream().filter(person ->
-                    person.getAge() > 16).count();
-            int countChildren = (int) hh.getPersons().values().stream().filter(person ->
-                    person.getAge() <= 16).count();
-
-            double weightedHhSize = countAdults + 0.5 * countChildren;
-            double income = hh.getMonthlyIncome_EUR();
-
-            int economicStatus = 0;
-            if (income / weightedHhSize <= 800) {economicStatus = 1; }
-            else if (income / weightedHhSize <= 1600) {economicStatus = 2; }
-            else if (income / weightedHhSize <= 2400) {economicStatus = 3; }
-            else if (income / weightedHhSize > 2400) {economicStatus = 4; }
-            hh.setEconomicStatus(economicStatus);
-        }
-    }
-
     public Map<Integer, MitoPerson> getPersons() {
         return Collections.unmodifiableMap(persons);
     }

@@ -220,62 +220,49 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
             predictor += coefficients.get("p.occupationStatus_Unemployed");
         }
 
-        // Number of work trips
-        int workTrips = pp.getTripsForPurpose(Purpose.HBW).size();
-        if (workTrips == 1) {
-            predictor += coefficients.get("p.workTrips_1");
-        } else if (workTrips == 2) {
-            predictor += coefficients.get("p.workTrips_2");
-        } else if (workTrips == 3) {
-            predictor += coefficients.get("p.workTrips_3");
-        } else if (workTrips == 4) {
-            predictor += coefficients.get("p.workTrips_4");
-        } else if (workTrips >= 5) {
-            predictor += coefficients.get("p.workTrips_5");
-        }
-
-        // Number of education trips
-        int eduTrips = pp.getTripsForPurpose(Purpose.HBE).size();
-        if (eduTrips == 1) {
-            predictor += coefficients.get("p.eduTrips_1");
-        } else if (eduTrips == 2) {
-            predictor += coefficients.get("p.eduTrips_2");
-        } else if (eduTrips == 3) {
-            predictor += coefficients.get("p.eduTrips_3");
-        } else if (eduTrips == 4) {
-            predictor += coefficients.get("p.eduTrips_4");
-        } else if (eduTrips >= 5) {
-            predictor += coefficients.get("p.eduTrips_5");
-        }
-
-        // Usual commute mode
-        Mode dominantCommuteMode = pp.getDominantCommuteMode();
-        if(dominantCommuteMode != null) {
-            if (dominantCommuteMode.equals(Mode.autoDriver)) {
-                predictor += coefficients.get("p.usualCommuteMode_carD");
-            } else if (dominantCommuteMode.equals(Mode.autoPassenger)) {
-                predictor += coefficients.get("p.usualCommuteMode_carP");
-            } else if (dominantCommuteMode.equals(Mode.publicTransport)) {
-                predictor += coefficients.get("p.usualCommuteMode_PT");
-            } else if (dominantCommuteMode.equals(Mode.bicycle)) {
-                predictor += coefficients.get("p.usualCommuteMode_cycle");
-            } else if (dominantCommuteMode.equals(Mode.walk)) {
-                predictor += coefficients.get("p.usualCommuteMode_walk");
+        // Work trips & mean distance
+        List<MitoTrip> workTrips = pp.getTripsForPurpose(Purpose.HBW);
+        int workTripCount = workTrips.size();
+        if(workTripCount > 0) {
+            if (workTripCount == 1) {
+                predictor += coefficients.get("p.workTrips_1");
+            } else if (workTripCount == 2) {
+                predictor += coefficients.get("p.workTrips_2");
+            } else if (workTripCount == 3) {
+                predictor += coefficients.get("p.workTrips_3");
+            } else if (workTripCount == 4) {
+                predictor += coefficients.get("p.workTrips_4");
+            } else {
+                predictor += coefficients.get("p.workTrips_5");
             }
-        }
-
-        // Commute distance
-        if(pp.getOccupation() != null) {
             int homeZoneId = pp.getHousehold().getZoneId();
-            int occupationZoneId = pp.getOccupation().getZoneId();
-            double commuteDistance = dataSet.getTravelDistancesNMT().getTravelDistance(homeZoneId,occupationZoneId);
-            if(commuteDistance == 0) {
-                logger.info("Commute distance from zone " + homeZoneId + " to zone " + occupationZoneId + "is Zero");
-                commuteDistance = 0.25;
-            }
-            predictor += Math.log(commuteDistance) * coefficients.get("p.m_mode_km_T");
+            double meanWorkKm = workTrips.stream().
+                    mapToDouble(t -> dataSet.getTravelDistancesNMT().
+                            getTravelDistance(homeZoneId, t.getTripDestination().getZoneId())).average().getAsDouble();
+            predictor += Math.log(meanWorkKm) * coefficients.get("p.log_km_mean_HBW");
         }
 
+        // Education trips & mean distance
+        List<MitoTrip> eduTrips = pp.getTripsForPurpose(Purpose.HBE);
+        int eduTripCount = eduTrips.size();
+        if(eduTripCount > 0) {
+            if (eduTripCount == 1) {
+                predictor += coefficients.get("p.eduTrips_1");
+            } else if (eduTripCount == 2) {
+                predictor += coefficients.get("p.eduTrips_2");
+            } else if (eduTripCount == 3) {
+                predictor += coefficients.get("p.eduTrips_3");
+            } else if (eduTripCount == 4) {
+                predictor += coefficients.get("p.eduTrips_4");
+            } else {
+                predictor += coefficients.get("p.eduTrips_5");
+            }
+            int homeZoneId = pp.getHousehold().getZoneId();
+            double meanWorkKm = eduTrips.stream().
+                    mapToDouble(t -> dataSet.getTravelDistancesNMT().
+                            getTravelDistance(homeZoneId, t.getTripDestination().getZoneId())).average().getAsDouble();
+            predictor += Math.log(meanWorkKm) * coefficients.get("p.log_km_mean_HBW");
+        }
 
         return predictor;
     }

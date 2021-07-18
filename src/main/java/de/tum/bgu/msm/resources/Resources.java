@@ -174,14 +174,6 @@ public class Resources {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MC_CALIBRATON_REGIONS_FILE));
     }
 
-    public Path getTravelTimeBudgetCoefficients() {
-        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TRAVEL_TIME_BUDGET_COEFFICIENTS));
-    }
-
-    public Path getDominantCommuteModeCoefficients() {
-        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.DOMINANT_COMMUTE_MODE_COEFFICIENTS));
-    }
-
     public Path getModeRestrictionCoefficients() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_RESTRICTION_COEFFICIENTS));
     }
@@ -194,10 +186,6 @@ public class Resources {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_CHOICE_COEFFICIENTS));
     }
 
-    public Path getModeChoiceCoefficientsNonWalk() {
-        return baseDirectory.resolve(Resources.instance.getString(MODE_CHOICE_COEFFICIENTS_NONWALK));
-    }
-
     public Path getTripGenerationCoefficientsHurdleBinaryLogit() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TG_BINARY_LOGIT_COEFFICIENTS));
     }
@@ -208,5 +196,9 @@ public class Resources {
 
     public Path getTripGenerationCoefficientsHurdleNegativeBinomial() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TG_NEGATIVE_BINOMIAL_COEFFICIENTS));
+    }
+
+    public Path getBicycleOwnershipInputFile() {
+        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.BIKE_OWNERSHIP_COEFFICIENTS));
     }
 }

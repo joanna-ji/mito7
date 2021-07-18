@@ -18,19 +18,19 @@ public class MitoPerson implements Id {
     private final MitoOccupation occupation;
     private final int age;
     private final boolean driversLicense;
-    private final boolean bicycle;
 
     private final EnumMap<Purpose, List<MitoTrip>> tripsByPurpose = new EnumMap<>(Purpose.class);
     private final EnumMap<Purpose, Double> travelTimeBudgetByPurpose= new EnumMap<>(Purpose.class);
     private double totalTravelTimeBudget = 0.;
 
-    private Mode dominantCommuteMode;
-    private ModeRestriction modeRestriction;
+    private ModeRestriction modeRestriction = ModeRestriction.AutoPtCycleWalk;
 
     private boolean transitPass;
     private boolean disable;
+    private boolean bicycle;
 
-    public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense, boolean ownBicycle) {
+
+    public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense) {
         this.id = id;
         this.household = hh;
         this.mitoOccupationStatus = mitoOccupationStatus;
@@ -38,7 +38,6 @@ public class MitoPerson implements Id {
         this.age = age;
         this.mitoGender = mitoGender;
         this.driversLicense = driversLicense;
-        this.bicycle = ownBicycle;
     }
 
     public MitoOccupation getOccupation() {
@@ -72,15 +71,11 @@ public class MitoPerson implements Id {
 
     public boolean hasBicycle() { return bicycle; }
 
+    public void setBicycle(boolean hasBicycle) { this.bicycle = hasBicycle; }
+
     public synchronized void setTripsByPurpose(List<MitoTrip> trips, Purpose purpose) {
         tripsByPurpose.put(purpose, trips);
     }
-
-    public void setDominantCommuteMode(Mode mode) {
-        this.dominantCommuteMode = mode;
-    }
-
-    public Mode getDominantCommuteMode() { return dominantCommuteMode; }
 
     public void setModeRestriction(ModeRestriction modeRestriction) {this.modeRestriction = modeRestriction; }
 

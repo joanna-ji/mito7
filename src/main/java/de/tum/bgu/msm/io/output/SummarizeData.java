@@ -31,7 +31,7 @@ public class SummarizeData {
         LOGGER.info("  Writing household file");
         Path filehh = Resources.instance.getOutputHouseholdPath();
         PrintWriter pwh = MitoUtil.openFileForSequentialWriting(filehh.toAbsolutePath().toString(), false);
-        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.isModelled,hh.size,hh.children,hh.cars,hh.autosPerAdult,hh.urban");
+        pwh.println("hh.id,hh.zone,hh.locX,hh.locY,hh.isModelled,hh.size,hh.children,hh.econStatus,hh.cars,hh.autosPerAdult,hh.urban");
         for (MitoHousehold hh : dataSet.getHouseholds().values()) {
             final MitoZone homeZone = hh.getHomeZone();
             if(homeZone == null) {
@@ -52,6 +52,8 @@ public class SummarizeData {
             pwh.print(",");
             pwh.print(DataSet.getChildrenForHousehold(hh));
             pwh.print(",");
+            pwh.print(hh.getEconomicStatus());
+            pwh.print(",");
             pwh.print(hh.getAutos());
             pwh.print(",");
             pwh.print(Math.min((double) hh.getAutos() / (hh.getHhSize() - dataSet.getChildrenForHousehold(hh)) , 1.0));
@@ -63,8 +65,7 @@ public class SummarizeData {
         LOGGER.info("  Writing person file");
         Path filepp = Resources.instance.getOutputPersonsPath();
         PrintWriter pwp = MitoUtil.openFileForSequentialWriting(filepp.toAbsolutePath().toString(), false);
-        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle," +
-                "p.dominantCommuteMode,p.modeRestriction," +
+        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle,p.modeRestriction," +
                 "p.trips,p.trips_HBW,p.trips_HBE,p.trips_HBS,p.trips_HBR,p.trips_HBO,p.trips_RRT,p.trips_NHBW,p.trips_NHBO,p.trips_AIRPORT");
         for(MitoHousehold hh: dataSet.getHouseholds().values()) {
             for (MitoPerson pp : hh.getPersons().values()) {
@@ -81,8 +82,6 @@ public class SummarizeData {
                     pwp.print(pp.hasDriversLicense());
                     pwp.print(",");
                     pwp.print(pp.hasBicycle());
-                    pwp.print(",");
-                    pwp.print(pp.getDominantCommuteMode());
                     pwp.print(",");
                     pwp.print(pp.getModeRestriction());
                     pwp.print(",");

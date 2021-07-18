@@ -32,12 +32,9 @@ public class Properties {
     public static final String TG_ORDERED_LOGIT_COEFFICIENTS = "tg.ordered.logit.coeffs";
     public static final String TG_NEGATIVE_BINOMIAL_COEFFICIENTS = "tg.negative.binomial.coeffs";
 
-    public static final String DOMINANT_COMMUTE_MODE_COEFFICIENTS = "dominantCommuteMode.coeffs";
-
     public static final String MODE_RESTRICTION_COEFFICIENTS = "modeRestriction.coeffs";
     public static final String MODE_RESTRICTION_CONSTANTS = "modeRestriction.ASCs";
     public static final String MODE_CHOICE_COEFFICIENTS = "modeChoice.coeffs";
-    public static final String MODE_CHOICE_COEFFICIENTS_NONWALK = "modeChoice.coeffs.nonWalk";
 
     public static final String BUS_TRAVEL_TIME_SKIM = "bus.travelTime";
     public static final String TRAM_METRO_TRAVEL_TIME_SKIM = "tramMetro.travelTime";
@@ -96,5 +93,7 @@ public class Properties {
     public static final String MOPED_PROPERTIES = "moped.properties";
     public static final String RUN_MOPED = "run.moped";
     public static final String BASE_DIRECTORY = "base.directory";
+
+    public static final String BIKE_OWNERSHIP_COEFFICIENTS = "bicycle.ownership.coefficients";
 
 }

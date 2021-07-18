@@ -5,7 +5,6 @@ import de.tum.bgu.msm.io.output.SummarizeData;
 import de.tum.bgu.msm.io.output.SummarizeDataToVisualize;
 import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
-import de.tum.bgu.msm.modules.modeChoice.DominantCommuteMode;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
 import de.tum.bgu.msm.modules.modeChoice.ModeRestrictionChoice;
 import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
@@ -33,7 +32,6 @@ public final class TravelDemandGenerator2017 {
 
     private final Module mandatoryTripGeneration;
     private final Module tripDistribution;
-    private final Module dominantCommuteMode;
     private final Module discretionaryTripGeneration;
     private final Module modeRestriction;
     private final Module modeChoice;
@@ -46,7 +44,6 @@ public final class TravelDemandGenerator2017 {
             DataSet dataSet,
             Module mandatoryTripGeneration,
             Module tripDistribution,
-            Module dominantCommuteMode,
             Module discretionaryTripGeneration,
             Module modeRestriction,
             Module modeChoice,
@@ -58,7 +55,6 @@ public final class TravelDemandGenerator2017 {
         this.dataSet = dataSet;
         this.mandatoryTripGeneration = mandatoryTripGeneration;
         this.tripDistribution = tripDistribution;
-        this.dominantCommuteMode = dominantCommuteMode;
         this.discretionaryTripGeneration = discretionaryTripGeneration;
         this.modeRestriction = modeRestriction;
         this.modeChoice = modeChoice;
@@ -88,7 +84,6 @@ public final class TravelDemandGenerator2017 {
             this.dataSet = dataSet;
             mandatoryTripGeneration = new MandatoryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
             tripDistribution = new TripDistribution(dataSet);
-            dominantCommuteMode = new DominantCommuteMode(dataSet);
             discretionaryTripGeneration = new DiscretionaryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
             modeRestriction = new ModeRestrictionChoice(dataSet);
             modeChoice = new ModeChoice(dataSet);
@@ -104,7 +99,6 @@ public final class TravelDemandGenerator2017 {
             return new TravelDemandGenerator2017(dataSet,
                     mandatoryTripGeneration,
                     tripDistribution,
-                    dominantCommuteMode,
                     discretionaryTripGeneration,
                     modeRestriction,
                     modeChoice,
@@ -120,10 +114,6 @@ public final class TravelDemandGenerator2017 {
 
         public void setTripDistribution(Module tripDistribution) {
             this.tripDistribution = tripDistribution;
-        }
-
-        public void setDominantCommuteMode(Module mandatoryDistribution) {
-            this.dominantCommuteMode = dominantCommuteMode;
         }
 
         public void setDiscretionaryTripGeneration(Module discretionaryTripGeneration) {
@@ -202,9 +192,6 @@ public final class TravelDemandGenerator2017 {
 
         logger.info("Running Module: Trip distribution (mandatory)");
         tripDistribution.run();
-
-        logger.info("Running Module: Dominant commute mode");
-        dominantCommuteMode.run();
 
         logger.info("Running Module: Discretionary trip generation");
         discretionaryTripGeneration.run();

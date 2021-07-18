@@ -1,6 +1,7 @@
 package de.tum.bgu.msm.modules.modeChoice;
 
 import de.tum.bgu.msm.data.*;
+import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.io.input.readers.CoefficientReader;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.resources.Resources;
@@ -12,10 +13,7 @@ import org.apache.log4j.Logger;
 import org.matsim.core.utils.collections.Tuple;
 
 import java.nio.file.Path;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.tum.bgu.msm.data.Mode.*;
@@ -23,10 +21,14 @@ import static de.tum.bgu.msm.data.Purpose.*;
 
 public class ModeChoiceWithMoped extends Module {
 
-    private final static Logger logger = Logger.getLogger(ModeChoiceWithMoped.class);
-    private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
-    private final static EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,publicTransport,bicycle,walk);
-    private final static Path modeChoiceCoefFolder = Resources.instance.getModeChoiceCoefficients();
+    private static final Logger logger = Logger.getLogger(ModeChoiceWithMoped.class);
+    private static final EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
+    private static final EnumSet<Mode> MODES = EnumSet.of(autoDriver,autoPassenger,train,tramOrMetro,bus,taxi,bicycle,walk);
+    private static final Path modeChoiceCoefFolder = Resources.instance.getModeChoiceCoefficients();
+    private static final LogitTools<Mode> logitTools = new LogitTools<>(Mode.class);
+
+    private static final double SPEED_WALK_KMH = 4;
+    private static final double SPEED_BICYCLE_KMH = 10;
 
     public ModeChoiceWithMoped(DataSet dataSet) {
         super(dataSet);
@@ -81,23 +83,27 @@ public class ModeChoiceWithMoped extends Module {
 
         private final Purpose purpose;
         private final DataSet dataSet;
+        private final TravelTimes travelTimes;
+        private final double peakHour_s;
         private final EnumMap<Mode, Map<String, Double>> coefficients = new EnumMap<>(Mode.class);
+        private final Map<Mode, Double> calibrationConstants;
         private int countTripsSkipped;
         private int countMopedWalkTripsSkipped;
         private int countConflictTrips;
-        private final static LogitTools<Mode> logitTools = new LogitTools<>(Mode.class);
-
 
         ModeChoiceByPurpose(Purpose purpose, DataSet dataSet) {
             super(MitoUtil.getRandomObject().nextLong());
             this.purpose = purpose;
             this.dataSet = dataSet;
+            this.travelTimes = dataSet.getTravelTimes();
+            this.peakHour_s = dataSet.getPeakHour();
             for(Mode mode : MODES) {
-                if(!(purpose.equals(RRT) & EnumSet.of(autoDriver,autoPassenger,publicTransport).contains(mode))) {
+                if(!(purpose.equals(RRT) & EnumSet.of(autoDriver,autoPassenger,train,tramOrMetro,bus,taxi).contains(mode))) {
                     coefficients.put(mode, new CoefficientReader(dataSet, mode,
-                            modeChoiceCoefFolder.resolve(purpose.toString() + ".csv")).readCoefficients());
+                            modeChoiceCoefFolder.resolve("mc_coefficients_" + purpose.toString().toLowerCase() + ".csv")).readCoefficients());
                 }
             }
+            this.calibrationConstants = dataSet.getModeChoiceCalibrationData().getCalibrationFactors().get("mma").get(purpose);
         }
 
         @Override
@@ -105,7 +111,7 @@ public class ModeChoiceWithMoped extends Module {
             logger.info("Mode choice for purpose " + purpose);
             countTripsSkipped = 0;
             try {
-                List<Tuple<EnumSet<Mode>, Double>> nests = logitTools.identifyNests(coefficients);
+                List<Tuple<EnumSet<Mode>, Double>> nests = purpose.equals(RRT) ? null : getNests();
                 for (MitoPerson person : dataSet.getModelledPersons().values()) {
                     List<MitoTrip> trips = person.getTripsForPurpose(purpose);
                     if(trips.size() > 0) {
@@ -132,11 +138,19 @@ public class ModeChoiceWithMoped extends Module {
             return null;
         }
 
+        private List<Tuple<EnumSet<Mode>, Double>> getNests() {
+            List<Tuple<EnumSet<Mode>, Double>> nests = new ArrayList<>();
+            nests.add(new Tuple<>(EnumSet.of(autoDriver,autoPassenger),coefficients.get(autoDriver).get("nestingCoefficient")));
+            nests.add(new Tuple<>(EnumSet.of(train, tramOrMetro, bus, taxi), coefficients.get(train).get("nestingCoefficient")));
+            nests.add(new Tuple<>(EnumSet.of(walk,bicycle), coefficients.get(walk).get("nestingCoefficient")));
+            return nests;
+        }
+
         private EnumSet<Mode> determineAvailability(MitoPerson person) {
             EnumSet<Mode> availability = person.getModeRestriction().getRestrictedModeSet();
             assert availability != null;
             if(purpose.equals(RRT)) {
-                availability.removeAll(EnumSet.of(autoDriver, autoPassenger, publicTransport));
+                availability.removeAll(EnumSet.of(autoDriver, autoPassenger, train, tramOrMetro, bus, taxi));
             }
             return availability;
         }
@@ -147,7 +161,11 @@ public class ModeChoiceWithMoped extends Module {
 
             EnumSet<Mode> availableChoices = determineAvailability(person);
             for(Mode mode : availableChoices) {
-                utilities.put(mode, getPersonPredictor(person, coefficients.get(mode)));
+                if(purpose.equals(RRT)) {
+                    utilities.put(mode, getPersonPredictorRRT(person, coefficients.get(mode)));
+                } else {
+                    utilities.put(mode, getPersonPredictor(person, coefficients.get(mode)));
+                }
             }
 
             return (utilities);
@@ -157,21 +175,25 @@ public class ModeChoiceWithMoped extends Module {
 
             EnumMap<Mode, Double> utilities = new EnumMap<>(Mode.class);
 
-            if(Purpose.getMandatoryPurposes().contains(trip.getTripPurpose())||trip.getTripPurpose().equals(RRT)) {
+            if(purpose.equals(RRT)) {
                 for (Mode mode : personUtilities.keySet()) {
-                    utilities.put(mode, personUtilities.get(mode) + getTripPredictor(trip, coefficients.get(mode)));
+                    utilities.put(mode, personUtilities.get(mode) + getTripPredictorRRT(trip, coefficients.get(mode)));
                 }
-            }else{
+            } else if (Purpose.getMandatoryPurposes().contains(purpose)) {
+                for (Mode mode : personUtilities.keySet()) {
+                    utilities.put(mode, calibrationConstants.get(mode) + personUtilities.get(mode) + getTripPredictor(mode, trip, coefficients.get(mode)));
+                }
+            } else {
                 for (Mode mode : personUtilities.keySet()) {
                     if(mode.equals(walk)){
                         if(personUtilities.keySet().size()==1) {
                             countConflictTrips++;
-                            utilities.put(mode, personUtilities.get(mode) + getTripPredictor(trip, coefficients.get(mode)));
+                            utilities.put(mode, calibrationConstants.get(mode) + personUtilities.get(mode) + getTripPredictor(mode, trip, coefficients.get(mode)));
                         }else{
-                            utilities.put(mode, personUtilities.get(mode) + getTripPredictor(trip, coefficients.get(mode)) + Double.NEGATIVE_INFINITY);
+                            utilities.put(mode, calibrationConstants.get(mode) + personUtilities.get(mode) + getTripPredictor(mode, trip, coefficients.get(mode)) + Double.NEGATIVE_INFINITY);
                         }
                     }else{
-                        utilities.put(mode, personUtilities.get(mode) + getTripPredictor(trip, coefficients.get(mode)));
+                        utilities.put(mode, calibrationConstants.get(mode) + personUtilities.get(mode) + getTripPredictor(mode, trip, coefficients.get(mode)));
                     }
                 }
             }
@@ -179,15 +201,116 @@ public class ModeChoiceWithMoped extends Module {
             return utilities;
         }
 
-        private double getTripPredictor(MitoTrip t, Map<String, Double> coefficients) {
+        private double getPersonPredictorRRT(MitoPerson pp, Map<String, Double> coefficients) {
+            double predictor = 0.;
+            MitoHousehold hh = pp.getHousehold();
+
+            // Intercept
+            predictor += coefficients.get("INTERCEPT");
+
+            // Household in urban region
+            if(!(hh.getHomeZone().getAreaTypeR().equals(AreaTypes.RType.RURAL))) {
+                predictor += coefficients.get("hh.urban");
+            }
+
+            // Household size
+            int householdSize = hh.getHhSize();
+            if (householdSize == 2) {
+                predictor += coefficients.get("hh.size_2");
+            } else if (householdSize == 3) {
+                predictor += coefficients.get("hh.size_3");
+            } else if (householdSize == 4) {
+                predictor += coefficients.get("hh.size_4");
+            } else if (householdSize >= 5) {;
+                predictor += coefficients.get("hh.size_5");
+            }
+
+            // Age
+            int age = pp.getAge();
+            if (age <= 18) {
+                predictor += coefficients.get("p.age_gr_1");
+            } else if (age <= 59) {
+                predictor += 0.;
+            } else if (age <= 69) {
+                predictor += coefficients.get("p.age_gr_5");
+            } else {
+                predictor += coefficients.get("p.age_gr_6");
+            }
+
+            // Female
+            if(pp.getMitoGender().equals(MitoGender.FEMALE)) {
+                predictor += coefficients.get("p.female");
+            }
+
+            return predictor;
+        }
+
+        private double getTripPredictorRRT(MitoTrip t, Map<String, Double> coefficients) {
             int originId = t.getTripOrigin().getZoneId();
             int destinationId = t.getTripDestination().getZoneId();
             double tripDistance = dataSet.getTravelDistancesNMT().getTravelDistance(originId,destinationId);
             if(tripDistance == 0) {
                 logger.info("0 trip distance for trip " + t.getId());
             }
-
             return Math.log(tripDistance) * coefficients.get("t.distance_T");
+        }
+
+        private double getTripPredictor(Mode mode, MitoTrip t, Map<String, Double> coefficients) {
+            int originId = t.getTripOrigin().getZoneId();
+            int destinationId = t.getTripDestination().getZoneId();
+
+            MitoZone originZone = dataSet.getZones().get(originId);
+            MitoZone destinationZone = dataSet.getZones().get(destinationId);
+
+            int monthlyIncome_EUR = t.getPerson().getHousehold().getMonthlyIncome_EUR();
+
+            // Travel time
+            double time;
+            switch(mode) {
+                case autoDriver:
+                case autoPassenger:
+                case taxi:
+                    time = travelTimes.getTravelTime(originZone, destinationZone, peakHour_s, "car");
+                    break;
+                case train:
+                    time = travelTimes.getTravelTime(originZone, destinationZone, peakHour_s, "train");
+                    break;
+                case bus:
+                    time = travelTimes.getTravelTime(originZone, destinationZone, peakHour_s, "bus");
+                    break;
+                case tramOrMetro:
+                    time = travelTimes.getTravelTime(originZone, destinationZone, peakHour_s, "tramMetro");
+                    break;
+                case bicycle:
+                    time = dataSet.getTravelDistancesNMT().getTravelDistance(originId,destinationId) / SPEED_BICYCLE_KMH * 60.;
+                    break;
+                case walk:
+                    time = dataSet.getTravelDistancesNMT().getTravelDistance(originId,destinationId) / SPEED_WALK_KMH * 60.;
+                    break;
+                default:
+                    throw new RuntimeException("Unknown mode: " + mode);
+            }
+
+            // Generalised cost
+            double gc;
+            if(mode.equals(bicycle) || mode.equals(walk)) {
+                gc = time;
+            } else {
+                double distance = dataSet.getTravelDistancesAuto().getTravelDistance(originId,destinationId);
+                double costPerKm = coefficients.get("costPerKm");
+                double vot;
+                if(monthlyIncome_EUR <= 1500) {
+                    vot = coefficients.get("vot_under_1500_eur_min");
+                } else if(monthlyIncome_EUR <= 5600) {
+                    vot = coefficients.get("vot_1500_to_5600_eur_min");
+                } else {
+                    vot = coefficients.get("vot_above_5600_eur_min");
+                }
+                gc = time + distance * costPerKm / vot;
+            }
+
+            // Return trip predictor
+            return coefficients.get("exp_generalized_time_min") * Math.exp(gc * coefficients.get("alpha"));
         }
 
         private double getPersonPredictor(MitoPerson pp, Map<String, Double> coefficients) {
@@ -195,152 +318,94 @@ public class ModeChoiceWithMoped extends Module {
             MitoHousehold hh = pp.getHousehold();
 
             // Intercept
-            predictor += coefficients.get("INTERCEPT");
+            predictor += coefficients.get("intercept");
 
-            // Household size
-            int householdSize = hh.getHhSize();
-            if (householdSize == 1) {
-                predictor += coefficients.getOrDefault("hh.size_1",0.);
-            } else if (householdSize == 2) {
-                predictor += coefficients.getOrDefault("hh.size_2",0.);
-            } else if (householdSize == 3) {
-                predictor += coefficients.getOrDefault("hh.size_3",0.);
-            } else if (householdSize == 4) {
-                predictor += coefficients.getOrDefault("hh.size_4",0.);
-            } else if (householdSize >= 5) {;
-                predictor += coefficients.getOrDefault("hh.size_5",0.);
+            // Gender
+            if(pp.getMitoGender().equals(MitoGender.MALE)) {
+                predictor += coefficients.get("gender_male");
+            } else {
+                predictor += coefficients.get("gender_female");
             }
 
-            // Number of children in household
-            int householdChildren = DataSet.getChildrenForHousehold(hh);
-            if(householdChildren == 1) {
-                predictor += coefficients.getOrDefault("hh.children_1",0.);
-            } else if (householdChildren == 2) {
-                predictor += coefficients.getOrDefault("hh.children_2",0.);
-            } else if (householdChildren >= 3) {
-                predictor += coefficients.getOrDefault("hh.children_3",0.);
-            }
-
-            // Economic status
-            int householdEconomicStatus = hh.getEconomicStatus();
-            if (householdEconomicStatus == 2) {
-                predictor += coefficients.getOrDefault("hh.econStatus_2",0.);
-            } else if (householdEconomicStatus == 3) {
-                predictor += coefficients.getOrDefault("hh.econStatus_3",0.);
-            } else if (householdEconomicStatus == 4) {
-                predictor += coefficients.getOrDefault("hh.econStatus_4",0.);
-            }
-
-            // Household in urban region
-            if(!(hh.getHomeZone().getAreaTypeR().equals(AreaTypes.RType.RURAL))) {
-                predictor += coefficients.getOrDefault("hh.urban",0.);
-            }
-
-            // Autos
-            int householdAutos = hh.getAutos();
-            if (householdAutos == 1) {
-                predictor += coefficients.getOrDefault("hh.cars_1",0.);
-            } else if (householdAutos == 2) {
-                predictor += coefficients.getOrDefault("hh.cars_2",0.);
-            } else if (householdAutos >= 3) {
-                predictor += coefficients.getOrDefault("hh.cars_3",0.);
-            }
-
-            // Autos per adult
-            int householdAdults = hh.getHhSize() - householdChildren;
-            double autosPerAdult = Math.min((double) householdAutos / householdAdults , 1.);
-            predictor += autosPerAdult * coefficients.getOrDefault("hh.autosPerAdult",0.);
-
-            // Is home close to PT?
-            if(coefficients.containsKey("hh.homePT")) {
-                int homeZoneId = hh.getHomeZone().getId();
-                double homeDistanceToPT = dataSet.getZones().get(homeZoneId).getDistanceToNearestRailStop();
-                double homeWalkToPT = homeDistanceToPT * (60 / 4.8);
-                if(homeWalkToPT <= 20) {
-                    predictor += coefficients.get("hh.homePT");
-                }
-            }
-
-            // Is the place of work or study close to PT?
-            if(coefficients.containsKey("p.workPT_12")) {
-                if(pp.getOccupation() != null) {
-                    int occupationZoneId = pp.getOccupation().getZoneId();
-                    double occupationDistanceToPT = dataSet.getZones().get(occupationZoneId).getDistanceToNearestRailStop();
-                    double occupationWalkToPT = occupationDistanceToPT * (60 / 4.8);
-                    if(occupationWalkToPT <= 20) {
-                        predictor += coefficients.get("p.workPT_12");
-                    }
-                }
+            // Occupation
+            MitoOccupationStatus occupationStatus = pp.getMitoOccupationStatus();
+            if(occupationStatus.equals(MitoOccupationStatus.WORKER)) {
+                predictor += coefficients.get("is_employed");
+            } else if(occupationStatus.equals(MitoOccupationStatus.STUDENT)) {
+                predictor += coefficients.get("is_student");
+            } else if(occupationStatus.equals(MitoOccupationStatus.UNEMPLOYED)) {
+                predictor += coefficients.get("is_homemaker_or_other");
+            } else if(occupationStatus.equals(MitoOccupationStatus.RETIRED)){
+                predictor += coefficients.get("is_retired_or_pensioner");
+            } else {
+                throw new RuntimeException("No occupation for person " + pp.getId());
             }
 
             // Age
             int age = pp.getAge();
-            if (age <= 18) {
-                predictor += coefficients.getOrDefault("p.age_gr_1",0.);
+            if (age <= 17) {
+                predictor += coefficients.get("age_0_to_17");
             }
             else if (age <= 29) {
-                predictor += coefficients.getOrDefault("p.age_gr_2",0.);
+                predictor += coefficients.get("age_18_to_29");
+            }
+            else if (age <= 39) {
+                predictor += coefficients.get("age_30_to_39");;
             }
             else if (age <= 49) {
-                predictor += 0.;
+                predictor += coefficients.get("age_40_to_49");
             }
             else if (age <= 59) {
-                predictor += coefficients.getOrDefault("p.age_gr_4",0.);
-            }
-            else if (age <= 69) {
-                predictor += coefficients.getOrDefault("p.age_gr_5",0.);
+                predictor += coefficients.get("age_50_to_59");
             }
             else {
-                predictor += coefficients.getOrDefault("p.age_gr_6",0.);
+                predictor += coefficients.get("age_above_60");
             }
 
-            // Female
-            if(pp.getMitoGender().equals(MitoGender.FEMALE)) {
-                predictor += coefficients.getOrDefault("p.female",0.);
-            }
-
-            // Has drivers Licence
-            if(pp.hasDriversLicense()) {
-                predictor += coefficients.getOrDefault("p.driversLicense",0.);
-            }
-
-            // Has bicycle
-            if(pp.hasBicycle()) {
-                predictor += coefficients.getOrDefault("p.ownBicycle",0.);
-            }
-
-            // Number of mandatory trips
-            int workTrips = pp.getTripsForPurpose(Purpose.HBW).size();
-
-            if (workTrips == 0) {
-                predictor += coefficients.getOrDefault("p.workTrips_0",0.);
-            } else if (workTrips < 5) {
-                predictor += coefficients.getOrDefault("p.workTrips_1234",0.);
+            // Economic status
+            int householdEconomicStatus = hh.getEconomicStatus();
+            if (householdEconomicStatus == 1) {
+                predictor += coefficients.get("is_economic_status_very_low");
+            } else if (householdEconomicStatus == 2) {
+                predictor += coefficients.get("is_economic_status_low");
+            } else if (householdEconomicStatus == 3) {
+                predictor += coefficients.get("is_economic_status_medium");
+            } else if (householdEconomicStatus == 4) {
+                predictor += coefficients.get("is_economic_status_high");
+            } else if (householdEconomicStatus == 5) {
+                predictor += coefficients.get("is_economic_status_very_high");
             } else {
-                predictor += coefficients.getOrDefault("p.workTrips_5",0.);
+                throw new RuntimeException("Unknown economic status: " + householdEconomicStatus);
             }
 
-            int eduTrips = pp.getTripsForPurpose(Purpose.HBE).size();
-            if (eduTrips >= 5) {
-                predictor += coefficients.getOrDefault("p.eduTrips_5",0.);
-            } else if (eduTrips > 0) {
-                predictor += coefficients.getOrDefault("p.eduTrips_1234",0.);
+            // Household size
+            int householdSize = hh.getHhSize();
+            if (householdSize == 1) {
+                predictor += coefficients.get("is_hh_one_person");
+            } else if (householdSize == 2) {
+                predictor += coefficients.get("is_hh_two_persons");
+            } else if (householdSize == 3) {
+                predictor += coefficients.get("is_hh_three_persons");
+            } else {
+                predictor += coefficients.get("is_hh_four_or_more_persons");
             }
 
-            // Usual commute mode
-            Mode dominantCommuteMode = pp.getDominantCommuteMode();
-            if(dominantCommuteMode != null) {
-                if (dominantCommuteMode.equals(Mode.autoDriver)) {
-                    predictor += coefficients.getOrDefault("p.usualCommuteMode_carD",0.);
-                } else if (dominantCommuteMode.equals(Mode.autoPassenger)) {
-                    predictor += coefficients.getOrDefault("p.usualCommuteMode_carP",0.);
-                } else if (dominantCommuteMode.equals(Mode.publicTransport)) {
-                    predictor += coefficients.getOrDefault("p.usualCommuteMode_PT",0.);
-                } else if (dominantCommuteMode.equals(Mode.bicycle)) {
-                    predictor += coefficients.getOrDefault("p.usualCommuteMode_cycle",0.);
-                } else if (dominantCommuteMode.equals(Mode.walk)) {
-                    predictor += coefficients.getOrDefault("p.usualCommuteMode_walk",0.);
-                }
+            // Autos
+            int householdAutos = hh.getAutos();
+            if (householdAutos == 0) {
+                predictor += coefficients.get("hh_no_car");
+            } else if (householdAutos == 1) {
+                predictor += coefficients.get("hh_one_car");
+            } else {
+                predictor += coefficients.get("hh_two_or_more_cars");
+            }
+
+            // Bikes
+            int householdBikes = (int) hh.getPersons().values().stream().filter(p -> p.hasBicycle()).count();
+            if (householdBikes > 0) {
+                predictor += coefficients.get("hh_has_bike");
+            } else {
+                predictor += coefficients.get("hh_no_bike");
             }
 
             return predictor;

@@ -89,11 +89,12 @@ public final class MitoModel2017withMoped {
     private void readAdditionalData() {
         new TripAttractionRatesReader(dataSet).read();
         new ModeChoiceInputReader(dataSet).read();
-        dataSet.setEconomicStatuses();
+        new EconomicStatusReader(dataSet).read();
         new DayProbabilitiesReader(dataSet).read();
         new TimeOfDayDistributionsReader(dataSet).read();
         new CalibrationDataReader(dataSet).read();
         new CalibrationRegionMapReader(dataSet).read();
+        new BicycleOwnershipReaderAndModel(dataSet).read();
     }
 
     private void printOutline(long startTime) {

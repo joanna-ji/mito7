@@ -12,11 +12,13 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static de.tum.bgu.msm.data.ModeRestriction.*;
+import static de.tum.bgu.msm.data.Purpose.HBE;
+import static de.tum.bgu.msm.data.Purpose.HBW;
 
 
 public class ModeRestrictionChoice extends Module {
 
-    private final static Logger logger = Logger.getLogger(ModeChoice.class);
+    private final static Logger logger = Logger.getLogger(ModeRestrictionChoice.class);
     private final static Path modeRestrictionCoefficientsPath = Resources.instance.getModeRestrictionCoefficients();
     private final static Path modeRestrictionConstantsPath = Resources.instance.getModeRestrictionConstants();
     private final static String[] MODES = {"auto", "publicTransport", "walk", "bicycle"};
@@ -60,7 +62,11 @@ public class ModeRestrictionChoice extends Module {
     private EnumMap<ModeRestriction, Double> getUtilities(MitoPerson person) {
 
         EnumMap<ModeRestriction, Double> utilities = new EnumMap<>(ModeRestriction.class);
-        EnumSet<ModeRestriction> availableChoices = determineAvailability(person);
+        EnumSet<ModeRestriction> availableChoices = EnumSet.allOf(ModeRestriction.class);
+        if(person.hasTripsForPurpose(Purpose.RRT)) {
+            availableChoices.removeAll(EnumSet.of(Auto, AutoPt, Pt));
+        }
+
         for(ModeRestriction modeRestriction : availableChoices) {
             double utility = constants.get(modeRestriction);
             String modeRestrictionString = modeRestriction.toString();
@@ -73,44 +79,25 @@ public class ModeRestrictionChoice extends Module {
         return (utilities);
     }
 
-    private EnumSet<ModeRestriction> determineAvailability(MitoPerson person) {
-
-        EnumSet<ModeRestriction> availableChoices = EnumSet.noneOf(ModeRestriction.class);
-        Mode dominantCommuteMode = person.getDominantCommuteMode();
-
-        boolean commuter = dominantCommuteMode != null;
-
-        EnumSet<ModeRestriction> possibleOptions = EnumSet.allOf(ModeRestriction.class);
-        if(person.hasTripsForPurpose(Purpose.RRT)) {
-            possibleOptions.removeAll(EnumSet.of(Auto, AutoPt, Pt));
-        }
-
-        if(commuter) {
-            for (ModeRestriction modeRestriction : possibleOptions) {
-                if (modeRestriction.getRestrictedModeSet().contains(dominantCommuteMode)) {
-                    availableChoices.add(modeRestriction);
-                }
-            }
-        } else {
-            availableChoices.addAll(possibleOptions);
-        }
-        return availableChoices;
-    }
-
     private double getPredictor(MitoPerson pp, Map<String, Double> coefficients) {
         double predictor = 0.;
         MitoHousehold hh = pp.getHousehold();
 
+        // Number of adults and children
+        int householdChildren = DataSet.getChildrenForHousehold(hh);
+        int householdAdults = hh.getHhSize() - householdChildren;
+        double householdSizeAdj = householdAdults + 0.5*householdChildren;
+
         // Intercept
         predictor += coefficients.get("INTERCEPT");
 
-        // Economic status
-        int householdEconomicStatus = hh.getEconomicStatus();
-        if (householdEconomicStatus == 2) {
+        // Economic status (MOP version)
+        double econStatusMop = hh.getMonthlyIncome_EUR() / householdSizeAdj;
+        if (econStatusMop > 800) {
             predictor += coefficients.get("hh.econStatus_2");
-        } else if (householdEconomicStatus == 3) {
+        } else if (econStatusMop > 1600) {
             predictor += coefficients.get("hh.econStatus_3");
-        } else if (householdEconomicStatus == 4) {
+        } else if (econStatusMop > 2400) {
             predictor += coefficients.get("hh.econStatus_4");
         }
 
@@ -128,7 +115,6 @@ public class ModeRestrictionChoice extends Module {
         }
 
         // Number of children in household
-        int householdChildren = DataSet.getChildrenForHousehold(hh);
         if(householdChildren == 1) {
             predictor += coefficients.get("hh.children_1");
         } else if (householdChildren == 2) {
@@ -148,7 +134,6 @@ public class ModeRestrictionChoice extends Module {
         }
 
         // Autos per adult
-        int householdAdults = hh.getHhSize() - householdChildren;
         double autosPerAdult = Math.min((double) householdAutos / householdAdults , 1.);
         predictor += autosPerAdult * coefficients.get("hh.autosPerAdult");
 
@@ -206,23 +191,25 @@ public class ModeRestrictionChoice extends Module {
             }
         }
 
-        // Number of trips by purpose
-        if(pp.hasTripsForPurpose(Purpose.RRT)) predictor += coefficients.get("p.isMobile_RRT");
+        // RRT trips
+        if(pp.hasTripsForPurpose(Purpose.RRT)) {
+            predictor += coefficients.get("p.isMobile_RRT");
+        }
 
-        // Usual commute mode
-        Mode dominantCommuteMode = pp.getDominantCommuteMode();
-        if(dominantCommuteMode != null) {
-            if (dominantCommuteMode.equals(Mode.autoDriver)) {
-                predictor += coefficients.get("p.usualCommuteMode_carD");
-            } else if (dominantCommuteMode.equals(Mode.autoPassenger)) {
-                predictor += coefficients.get("p.usualCommuteMode_carP");
-            } else if (dominantCommuteMode.equals(Mode.publicTransport)) {
-                predictor += coefficients.get("p.usualCommuteMode_PT");
-            } else if (dominantCommuteMode.equals(Mode.bicycle)) {
-                predictor += coefficients.get("p.usualCommuteMode_cycle");
-            } else if (dominantCommuteMode.equals(Mode.walk)) {
-                predictor += coefficients.get("p.usualCommuteMode_walk");
-            }
+        // Work trips
+        if(pp.hasTripsForPurpose(HBW)) {
+            double meanWorkKm = pp.getTripsForPurpose(HBW).stream().
+                    mapToDouble(t -> dataSet.getTravelDistancesNMT().
+                            getTravelDistance(homeZoneId, t.getTripDestination().getZoneId())).average().getAsDouble();
+            predictor += coefficients.get("p.isMobile_HBW") + Math.log(meanWorkKm) * coefficients.get("p.log_km_mean_HBW");
+        }
+
+        // Education trips
+        if(pp.hasTripsForPurpose(HBE)) {
+            double meanEduKm = pp.getTripsForPurpose(HBE).stream().
+                    mapToDouble(t -> dataSet.getTravelDistancesNMT().
+                            getTravelDistance(homeZoneId, t.getTripDestination().getZoneId())).average().getAsDouble();
+            predictor += coefficients.get("p.isMobile_HBE") + Math.log(meanEduKm) * coefficients.get("p.log_km_mean_HBE");
         }
 
         return predictor;

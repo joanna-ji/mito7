@@ -15,21 +15,21 @@ public class LogitTools <E extends Enum<E>> {
         this.enumClass = enumClass;
     }
 
+    // Not currently used
     public List<Tuple<EnumSet<E>, Double>> identifyNests(EnumMap<E, Map<String, Double>> coefficients) {
 
         Map<Integer,Tuple<EnumSet<E>, Double>> nests = new HashMap<>();
 
-        if(!coefficients.entrySet().iterator().next().getValue().containsKey("nest_number") &&
-                !coefficients.entrySet().iterator().next().getValue().containsKey("nest_coefficient")) {
+        if(!coefficients.entrySet().iterator().next().getValue().containsKey("nestingCoefficient")) {
             logger.info("Identified Multinomial Logit.");
             return null;
         } else {
             for(E option : coefficients.keySet()) {
-                int nestCode = coefficients.get(option).get("nest_number").intValue();
+                int nestCode = coefficients.get(option).get("nest").intValue();
                 if(nests.keySet().contains(nestCode)) {
                     nests.get(nestCode).getFirst().add(option);
                 } else {
-                    nests.put(nestCode, new Tuple<>(EnumSet.of(option),coefficients.get(option).get("nest_coefficient")));
+                    nests.put(nestCode, new Tuple<>(EnumSet.of(option),coefficients.get(option).get("nestingCoefficient")));
                 }
             }
 
