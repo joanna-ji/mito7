@@ -90,6 +90,7 @@ public class Properties {
     public static final String MC_CALIBRATON_CONSTANTS_FILE = "mc.calibration.constants.file";
     public static final String MC_CALIBRATON_REGIONS_FILE = "mc.calibration.regions.file";
     public static final String MC_CALIBRATION_ITERATIONS = "mc.calibration.iterations";
+    public static final String MC_COEFFICIENTS = "mc.coefficient.file.suffix";
     public static final String MOPED_PROPERTIES = "moped.properties";
     public static final String RUN_MOPED = "run.moped";
     public static final String BASE_DIRECTORY = "base.directory";

@@ -7,13 +7,12 @@ import de.tum.bgu.msm.modules.modeChoice.ModeChoiceCalibrationData;
 
 import java.util.EnumMap;
 
-public class CalibratingModeChoiceCalculatorImpl extends ModeChoiceCalculatorImpl {
+public class CalibratingModeChoiceCalculatorImpl extends ModeChoiceCalculator {
 
     private final ModeChoiceCalculator base;
     private final ModeChoiceCalibrationData calibrationData;
 
     public CalibratingModeChoiceCalculatorImpl(ModeChoiceCalculator base, ModeChoiceCalibrationData calibrationData) {
-        super();
         this.base = base;
         this.calibrationData = calibrationData;
     }

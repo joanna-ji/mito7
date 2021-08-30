@@ -6,46 +6,9 @@ import de.tum.bgu.msm.modules.modeChoice.ModeChoiceCalculator;
 
 import java.util.EnumMap;
 
-public class AirportModeChoiceCalculator implements ModeChoiceCalculator {
+public class AirportModeChoiceCalculator extends ModeChoiceCalculator {
 
 ///////////////////////////////////////////////// AIRPORT Mode Choice /////////////////////////////////////////////////////
-
-    @Override
-    public EnumMap<Mode, Double> calculateProbabilities(Purpose purpose, MitoHousehold hh, MitoPerson person,
-                                                        MitoZone originZone, MitoZone destinationZone,
-                                                        TravelTimes travelTimes, double travelDistanceAuto,
-                                                        double travelDistanceNMT, double peakHour) {
-        if(purpose != Purpose.AIRPORT) {
-            throw  new IllegalArgumentException("Airport mode choice calculator can only be used for airport purposes.");
-        }
-
-        //Order of variables in the return variable
-        //Auto driver, Auto passenger, bicyle, bus, train, tram or metro, walk
-
-
-        EnumMap<Mode, Double> utilities = calculateUtilities(purpose, hh,
-                person, originZone, destinationZone,
-                travelTimes, travelDistanceAuto, travelDistanceNMT, peakHour);
-
-        double sum_u = utilities.get(Mode.autoDriver) + utilities.get(Mode.autoPassenger)
-                + utilities.get(Mode.bus) + utilities.get(Mode.train);
-
-
-        double probabilityAutoD = utilities.get(Mode.autoDriver) / sum_u;
-        double probabilityAutoP = utilities.get(Mode.autoPassenger) / sum_u;
-        double probabilityBus = utilities.get(Mode.bus) / sum_u;
-        double probabilityTrain = utilities.get(Mode.train) / sum_u;
-
-        EnumMap<Mode, Double> probabilities = new EnumMap<>(Mode.class);
-        probabilities.put(Mode.autoDriver, probabilityAutoD);
-        probabilities.put(Mode.autoPassenger, probabilityAutoP);
-        probabilities.put(Mode.bus, probabilityBus);
-        probabilities.put(Mode.train, probabilityTrain);
-        probabilities.put(Mode.walk, 0.);
-        probabilities.put(Mode.bicycle, 0.);
-        probabilities.put(Mode.tramOrMetro, 0.);
-        return probabilities;
-    }
 
     @Override
     public EnumMap<Mode, Double> calculateUtilities(Purpose purpose, MitoHousehold household, MitoPerson person, MitoZone originZone, MitoZone destinationZone, TravelTimes travelTimes, double travelDistanceAuto, double travelDistanceNMT, double peakHour_s) {
@@ -91,21 +54,15 @@ public class AirportModeChoiceCalculator implements ModeChoiceCalculator {
 
         //Auto driver, Auto passenger, bicyle, bus, train, tram or metro, walk
 
-        //TODO: returned Airport utilities are actually exponentiated utilities
         EnumMap<Mode, Double> utilities = new EnumMap<>(Mode.class);
-        utilities.put(Mode.autoDriver, Math.exp(u_autoDriver) + Math.exp(u_autoOther));
-        utilities.put(Mode.autoPassenger, Math.exp(u_autoPassenger));
-        utilities.put(Mode.bicycle, 0.);
-        utilities.put(Mode.bus, Math.exp(u_bus));
-        utilities.put(Mode.train, Math.exp(u_train));
-        utilities.put(Mode.tramOrMetro, 0.);
-        utilities.put(Mode.walk, 0.);
+        utilities.put(Mode.autoDriver, Math.log(Math.exp(u_autoDriver) + Math.exp(u_autoOther)));
+        utilities.put(Mode.autoPassenger, u_autoPassenger);
+        utilities.put(Mode.bicycle, Double.MIN_VALUE);
+        utilities.put(Mode.bus, u_bus);
+        utilities.put(Mode.train, u_train);
+        utilities.put(Mode.tramOrMetro, Double.MIN_VALUE);
+        utilities.put(Mode.walk, Double.MIN_VALUE);
 
         return utilities;
-    }
-
-    @Override
-    public EnumMap<Mode, Double> calculateGeneralizedCosts(Purpose purpose, MitoHousehold household, MitoPerson person, MitoZone originZone, MitoZone destinationZone, TravelTimes travelTimes, double travelDistanceAuto, double travelDistanceNMT, double peakHour_s) {
-        throw new RuntimeException("Not implemented!");
     }
 }

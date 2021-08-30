@@ -30,7 +30,7 @@ public enum Purpose implements Id {
         return this.tripAttractionByVariable.get(variable);
     }
 
-    public static List<Purpose> getDiscretionaryPurposes(){
+    public static List<Purpose> getMopedPurposes(){
         List<Purpose> list = new ArrayList<>();
         list.add(HBS);
         list.add(HBO);

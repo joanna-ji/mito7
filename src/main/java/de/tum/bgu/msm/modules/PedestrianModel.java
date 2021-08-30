@@ -101,7 +101,7 @@ public class PedestrianModel {
                 }
                 for (MitoPerson pp : hh.getPersons().values()) {
                     for (MitoTrip tt : pp.getTrips()) {
-                        if (de.tum.bgu.msm.data.Purpose.getDiscretionaryPurposes().contains(tt.getTripPurpose())) {
+                        if (de.tum.bgu.msm.data.Purpose.getMopedPurposes().contains(tt.getTripPurpose())) {
                             MopedHousehold mopedHousehold = mopedModel.getDataSet().getHouseholds().get(hh.getId());
                             if(mopedHousehold==null){
                                 throw new RuntimeException("Household:" + hh.getId() + " does not exist in moped household list!");
@@ -360,7 +360,7 @@ public class PedestrianModel {
     }
 
     private boolean hasDiscretionaryTrip(MitoHousehold hh) {
-        for(de.tum.bgu.msm.data.Purpose purpose : de.tum.bgu.msm.data.Purpose.getDiscretionaryPurposes()){
+        for(de.tum.bgu.msm.data.Purpose purpose : de.tum.bgu.msm.data.Purpose.getMopedPurposes()){
             if(!hh.getTripsForPurpose(purpose).isEmpty()){
                 return true;
             }

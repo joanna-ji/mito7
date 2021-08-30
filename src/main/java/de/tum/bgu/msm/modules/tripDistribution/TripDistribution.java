@@ -30,8 +30,8 @@ public final class TripDistribution extends Module {
     private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,RRT,NHBW,NHBO);
     private final static EnumSet<Purpose> MANDATORY_PURPOSES = EnumSet.of(HBW,HBE);
     private final static EnumSet<Purpose> DISCRETIONARY_PURPOSES = EnumSet.of(HBS,HBR,HBO,RRT,NHBW,NHBO);
-    private final static EnumSet<Purpose> HOMEBASEDDISCRETIONARY_PURPOSES = EnumSet.of(HBS,HBR,HBO,RRT);
-    private final static EnumSet<Purpose> NONHOMEBASED_PURPOSES = EnumSet.of(NHBW,NHBO);
+    private final static EnumSet<Purpose> HOME_BASED_DISCRETIONARY_PURPOSES = EnumSet.of(HBS,HBR,HBO,RRT);
+    private final static EnumSet<Purpose> NON_HOME_BASED_PURPOSES = EnumSet.of(NHBW,NHBO);
 
     public final static EnumMap<Purpose, AtomicIntegerArray> distributedTrips = new EnumMap<>(Purpose.class);
     public final static EnumMap<Purpose, AtomicDoubleArray> distributedDistances = new EnumMap<>(Purpose.class);
@@ -147,7 +147,7 @@ public final class TripDistribution extends Module {
             }
 
             logger.info("Home Based Discretionary distribution statistics...");
-            distributionStatistics(HOMEBASEDDISCRETIONARY_PURPOSES);
+            distributionStatistics(HOME_BASED_DISCRETIONARY_PURPOSES);
 
             completedHomeBasedDiscretionary = true;
         }else{
@@ -157,14 +157,14 @@ public final class TripDistribution extends Module {
                 distributeNhbwNhboTrips(EnumSet.of(NHBW,NHBO));
             }
             logger.info("Non Home Based Discretionary distribution statistics...");
-            distributionStatistics(NONHOMEBASED_PURPOSES);
+            distributionStatistics(NON_HOME_BASED_PURPOSES);
         }
     }
 
     //for Moped
     public void setUp() {
         logger.info("Building initial destination choice utility matrices...");
-        buildMatrices(NONHOMEBASED_PURPOSES);
+        buildMatrices(NON_HOME_BASED_PURPOSES);
 
         logger.info("finding origins for non home based trips...");
         final int numberOfThreads = Runtime.getRuntime().availableProcessors();
@@ -172,7 +172,7 @@ public final class TripDistribution extends Module {
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(numberOfThreads);
         List<Callable<Void>> nonHomeBasedTasks = new ArrayList<>();
 
-        for (Purpose purpose : NONHOMEBASED_PURPOSES){
+        for (Purpose purpose : NON_HOME_BASED_PURPOSES){
             for (final Tuple<Integer, List<MitoHousehold>> partition : partitions) {
                 if (purpose.equals(NHBW)){
                     nonHomeBasedTasks.add(new NhbwNhboOrigin(NHBW, dataSet, partition.getFirst(), partition.getSecond()));

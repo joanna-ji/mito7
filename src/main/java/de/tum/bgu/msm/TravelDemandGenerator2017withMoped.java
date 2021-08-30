@@ -9,7 +9,7 @@ import de.tum.bgu.msm.io.output.SummarizeDataToVisualize;
 import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.PedestrianModel;
-import de.tum.bgu.msm.modules.modeChoice.ModeChoiceWithMoped;
+import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
 import de.tum.bgu.msm.modules.modeChoice.ModeRestrictionChoice;
 import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
 import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
@@ -92,7 +92,7 @@ public final class TravelDemandGenerator2017withMoped {
             tripDistribution = new TripDistribution(dataSet);
             discretionaryTripGeneration = new DiscretionaryTripGeneration(dataSet, new TripsByPurposeGeneratorFactoryHurdle());
             modeRestriction = new ModeRestrictionChoice(dataSet);
-            modeChoice = new ModeChoiceWithMoped(dataSet);
+            modeChoice = new ModeChoice(dataSet);
             timeOfDayChoice = new TimeOfDayChoice(dataSet);
             tripScaling = new TripScaling(dataSet);
             matsimPopulationGenerator = new MatsimPopulationGenerator(dataSet);
@@ -193,7 +193,7 @@ public final class TravelDemandGenerator2017withMoped {
             return;
         }
         long endTime = System.currentTimeMillis();
-        double duration = (endTime - startTime) / 1000;
+        double duration = (endTime - startTime) / 1000.;
         logger.info("Completed TG in " + duration + " seconds");
 
         logger.info("Running Module: Trip distribution (mandatory)");
@@ -205,7 +205,7 @@ public final class TravelDemandGenerator2017withMoped {
         logger.info("Running Module: Mode Restriction");
         modeRestriction.run();
 
-        boolean runMoped = Resources.instance.getBoolean(Properties.RUN_MOPED, false);;
+        boolean runMoped = Resources.instance.getBoolean(Properties.RUN_MOPED, false);
         PedestrianModel pedestrianModel = new PedestrianModel(dataSet);
         if (runMoped) {
             logger.info("Running Module: Moped Pedestrian Model - Home based trips");
@@ -231,6 +231,14 @@ public final class TravelDemandGenerator2017withMoped {
         logger.info("Running Module: Trip to Mode Assignment (Mode Choice)");
         modeChoice.run();
 
+        // MODE CHOICE CALIBRATION CODE
+/*        ModeChoiceCalibrationData modeChoiceCalibrationData = dataSet.getModeChoiceCalibrationData();
+        for (int i = 1 ; i <= 100 ; i++) {
+            modeChoiceCalibrationData.updateCalibrationCoefficients(dataSet, i);
+            modeChoice.run();
+        }
+        modeChoiceCalibrationData.close();*/
+
         logger.info("Running time of day choice");
         timeOfDayChoice.run();
 
@@ -248,7 +256,7 @@ public final class TravelDemandGenerator2017withMoped {
 
         for(Day day : Day.values()){
             for(Mode mode : Mode.values()){
-                Collection<MitoTrip> tripsToPrint = dataSet.getTrips().values().stream().filter(tt -> tt.getDepartureDay().equals(day) & tt.getTripMode().equals(mode)).collect(Collectors.toList());
+                Collection<MitoTrip> tripsToPrint = dataSet.getTrips().values().stream().filter(tt -> day.equals(tt.getDepartureDay()) & mode.equals(tt.getTripMode())).collect(Collectors.toList());
                 if(tripsToPrint.size()>0){
                     SummarizeData.writeOutTripsByDayByMode(dataSet,scenarioName,day,mode,tripsToPrint);
                 }else{

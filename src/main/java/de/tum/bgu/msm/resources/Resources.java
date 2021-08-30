@@ -182,10 +182,6 @@ public class Resources {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_RESTRICTION_CONSTANTS));
     }
 
-    public Path getModeChoiceCoefficients() {
-        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MODE_CHOICE_COEFFICIENTS));
-    }
-
     public Path getTripGenerationCoefficientsHurdleBinaryLogit() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TG_BINARY_LOGIT_COEFFICIENTS));
     }
@@ -196,6 +192,13 @@ public class Resources {
 
     public Path getTripGenerationCoefficientsHurdleNegativeBinomial() {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.TG_NEGATIVE_BINOMIAL_COEFFICIENTS));
+    }
+
+    public Path getModeChoiceCoefficients(Purpose purpose) {
+        return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MC_COEFFICIENTS) +
+                "_" +
+                purpose.toString().toLowerCase() +
+                ".csv");
     }
 
     public Path getBicycleOwnershipInputFile() {
