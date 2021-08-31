@@ -21,7 +21,6 @@ public class ModeChoiceCalibrationData {
     private Map<Integer, String> zoneToRegionMap;
 
     private final static EnumSet<Purpose> PURPOSES = EnumSet.of(HBW,HBE,HBS,HBR,HBO,NHBW,NHBO);
-    private final static boolean RUN_MOPED = Resources.instance.getBoolean(Properties.RUN_MOPED, false);
 
     private PrintWriter pw = null;
 
@@ -58,6 +57,8 @@ public class ModeChoiceCalibrationData {
 
     public void updateCalibrationCoefficients(DataSet dataSet, int iteration) {
 
+        boolean runMoped = Resources.instance.getBoolean(Properties.RUN_MOPED, false);
+
         if (pw == null){
             try {
                 pw = new PrintWriter("mode_choice_calibration.csv");
@@ -90,7 +91,7 @@ public class ModeChoiceCalibrationData {
                 // Adjustments for MoPeD (since walk is not part of the mode share)
                 double observedShareAdjustment = 1.;
                 double simulatedTripCountAdjustment = 0.;
-                if(RUN_MOPED && !Purpose.getMandatoryPurposes().contains(purpose)) {
+                if(runMoped && !Purpose.getMandatoryPurposes().contains(purpose)) {
                     observedShareAdjustment = 1. / (1. - observedModalShare.get(region).get(purpose).get(Mode.walk));
                     simulatedTripCountAdjustment = simulatedTripsByRegionPurposeAndMode.get(region).get(purpose).get(Mode.walk);
                 }
