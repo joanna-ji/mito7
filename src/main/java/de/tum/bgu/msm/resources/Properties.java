@@ -34,7 +34,6 @@ public class Properties {
 
     public static final String MODE_RESTRICTION_COEFFICIENTS = "modeRestriction.coeffs";
     public static final String MODE_RESTRICTION_CONSTANTS = "modeRestriction.ASCs";
-    public static final String MODE_CHOICE_COEFFICIENTS = "modeChoice.coeffs";
 
     public static final String BUS_TRAVEL_TIME_SKIM = "bus.travelTime";
     public static final String TRAM_METRO_TRAVEL_TIME_SKIM = "tramMetro.travelTime";

@@ -10,6 +10,7 @@ import de.tum.bgu.msm.io.output.TripGenerationWriter;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.PedestrianModel;
 import de.tum.bgu.msm.modules.modeChoice.ModeChoice;
+import de.tum.bgu.msm.modules.modeChoice.ModeChoiceCalibrationData;
 import de.tum.bgu.msm.modules.modeChoice.ModeRestrictionChoice;
 import de.tum.bgu.msm.modules.plansConverter.MatsimPopulationGenerator;
 import de.tum.bgu.msm.modules.plansConverter.externalFlows.LongDistanceTraffic;
@@ -232,12 +233,15 @@ public final class TravelDemandGenerator2017withMoped {
         modeChoice.run();
 
         // MODE CHOICE CALIBRATION CODE
-/*        ModeChoiceCalibrationData modeChoiceCalibrationData = dataSet.getModeChoiceCalibrationData();
-        for (int i = 1 ; i <= 100 ; i++) {
-            modeChoiceCalibrationData.updateCalibrationCoefficients(dataSet, i);
-            modeChoice.run();
+        int modeChoiceCalibrationIterations = Resources.instance.getInt(Properties.MC_CALIBRATION_ITERATIONS,0);
+        if(modeChoiceCalibrationIterations > 0) {
+            ModeChoiceCalibrationData modeChoiceCalibrationData = dataSet.getModeChoiceCalibrationData();
+            for (int i = 1 ; i <= modeChoiceCalibrationIterations ; i++) {
+                modeChoiceCalibrationData.updateCalibrationCoefficients(dataSet, i);
+                modeChoice.run();
+            }
+            modeChoiceCalibrationData.close();
         }
-        modeChoiceCalibrationData.close();*/
 
         logger.info("Running time of day choice");
         timeOfDayChoice.run();
