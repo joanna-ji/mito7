@@ -4,7 +4,7 @@ import de.tum.bgu.msm.data.*;
 import de.tum.bgu.msm.data.travelTimes.TravelTimes;
 import de.tum.bgu.msm.modules.Module;
 import de.tum.bgu.msm.modules.modeChoice.calculators.CalibratingModeChoiceCalculatorImpl;
-import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculator2008Impl;
+import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculator2017NewImpl;
 import de.tum.bgu.msm.modules.modeChoice.calculators.ModeChoiceCalculatorRrtImpl;
 import de.tum.bgu.msm.resources.Properties;
 import de.tum.bgu.msm.resources.Resources;
@@ -32,14 +32,14 @@ public class ModeChoice extends Module {
     public ModeChoice(DataSet dataSet) {
         super(dataSet);
 
-        modeChoiceCalculatorByPurpose.put(Purpose.HBW, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.HBW, dataSet),dataSet.getModeChoiceCalibrationData()));
-        modeChoiceCalculatorByPurpose.put(Purpose.HBE, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.HBE, dataSet),dataSet.getModeChoiceCalibrationData()));
-        modeChoiceCalculatorByPurpose.put(Purpose.HBS, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.HBS, dataSet),dataSet.getModeChoiceCalibrationData()));
-        modeChoiceCalculatorByPurpose.put(Purpose.HBR, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.HBR, dataSet),dataSet.getModeChoiceCalibrationData()));
-        modeChoiceCalculatorByPurpose.put(Purpose.HBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.HBO, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.HBW, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.HBW, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.HBE, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.HBE, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.HBS, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.HBS, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.HBR, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.HBR, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.HBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.HBO, dataSet),dataSet.getModeChoiceCalibrationData()));
         modeChoiceCalculatorByPurpose.put(Purpose.RRT, new ModeChoiceCalculatorRrtImpl(dataSet));
-        modeChoiceCalculatorByPurpose.put(Purpose.NHBW, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.NHBW, dataSet),dataSet.getModeChoiceCalibrationData()));
-        modeChoiceCalculatorByPurpose.put(Purpose.NHBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2008Impl(Purpose.NHBO, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.NHBW, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.NHBW, dataSet),dataSet.getModeChoiceCalibrationData()));
+        modeChoiceCalculatorByPurpose.put(Purpose.NHBO, new CalibratingModeChoiceCalculatorImpl(new ModeChoiceCalculator2017NewImpl(Purpose.NHBO, dataSet),dataSet.getModeChoiceCalibrationData()));
     }
 
     public void registerModeChoiceCalculator(Purpose purpose, ModeChoiceCalculator modeChoiceCalculator) {

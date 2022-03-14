@@ -196,8 +196,7 @@ public class Resources {
 
     public Path getModeChoiceCoefficients(Purpose purpose) {
         return baseDirectory.resolve(Resources.instance.getString(de.tum.bgu.msm.resources.Properties.MC_COEFFICIENTS) +
-                "_" +
-                purpose.toString().toLowerCase() +
+                purpose.toString() +
                 ".csv");
     }
 

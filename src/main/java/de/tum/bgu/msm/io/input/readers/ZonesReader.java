@@ -18,6 +18,7 @@ public class ZonesReader extends AbstractCsvReader {
 
     private static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ZonesReader.class);
     private int idIndex;
+    private int distToTransitKmIndex;
     private int areaTypeIndex;
 
     public ZonesReader(DataSet dataSet) {
@@ -49,15 +50,17 @@ public class ZonesReader extends AbstractCsvReader {
     @Override
     protected void processHeader(String[] header) {
         idIndex = MitoUtil.findPositionInArray("Zone", header);
+        distToTransitKmIndex = MitoUtil.findPositionInArray("distanceToTransit", header);
         areaTypeIndex = MitoUtil.findPositionInArray("BBSR_type", header);
     }
 
     @Override
     protected void processRecord(String[] record) {
         int zoneId = Integer.parseInt(record[idIndex]);
+        double distToTransitKm = Double.parseDouble(record[distToTransitKmIndex]) / 1000.;
         int region = Integer.parseInt(record[areaTypeIndex]);
         AreaTypes.SGType areaType = AreaTypes.SGType.valueOf(region);
-        MitoZone zone = new MitoZone(zoneId, areaType);
+        MitoZone zone = new MitoZone(zoneId, distToTransitKm, areaType);
         dataSet.addZone(zone);
     }
 }

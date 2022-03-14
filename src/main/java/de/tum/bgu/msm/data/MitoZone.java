@@ -37,11 +37,13 @@ public class MitoZone implements Id, Location {
     private AreaTypes.RType areaTypeR;
 
     private float distanceToNearestRailStop;
+    private double distanceToTransitKm;
     private Geometry geometry;
 
 
-    public MitoZone(int id, AreaTypes.SGType areaType) {
+    public MitoZone(int id, double kmToTransit,AreaTypes.SGType areaType) {
         this.zoneId = id;
+        this.distanceToTransitKm = kmToTransit;
         this.areaTypeSG = areaType;
     }
 
@@ -65,6 +67,10 @@ public class MitoZone implements Id, Location {
 
     public float getDistanceToNearestRailStop() {
         return distanceToNearestRailStop;
+    }
+
+    public double getDistanceToTransitKm() {
+        return distanceToTransitKm;
     }
 
     /**
