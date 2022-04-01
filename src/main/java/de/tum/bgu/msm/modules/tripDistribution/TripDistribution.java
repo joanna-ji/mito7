@@ -225,7 +225,7 @@ public final class TripDistribution extends Module {
         List<Callable<Triple<Purpose, Integer, IndexedDoubleMatrix2D>>> utilityCalcTasks = new ArrayList<>();
 
         for (Purpose purpose : purposes) {
-            if (EnumSet.of(HBE,RRT).contains(purpose)) {
+            if (HBE.equals(purpose)) {
                 utilityCalcTasks.add(new DestinationUtilityByPurposeGenerator(purpose, null, dataSet));
             } else {
                 utilityCalcTasks.add(new DestinationUtilityByPurposeGenerator(purpose, 0, dataSet));
@@ -275,7 +275,7 @@ public final class TripDistribution extends Module {
         ConcurrentExecutor<Void> executor = ConcurrentExecutor.fixedPoolService(numberOfThreads);
         List<Callable<Void>> rrtTasks = new ArrayList<>();
         for (final Tuple<Integer, List<MitoHousehold>> partition : partitions) {
-            rrtTasks.add(new RrtDistribution(dataSet, partition.getFirst(), partition.getSecond()));
+            rrtTasks.add(new RrtDistribution(dataSet, partition.getSecond()));
         }
         executor.submitTasksAndWaitForCompletion(rrtTasks);
     }
@@ -293,7 +293,7 @@ public final class TripDistribution extends Module {
 
     private void distributionStatistics(EnumSet<Purpose> purposes) {
         // Trip distances (differentiated by car ownership)
-        logger.info("PURPOSE || FAILED ||   MEAN DISTANCE   || [ 0 CARS/ADULT, < 1 CARS/ADULT, >= 1 CARS/ADULT ]");
+        logger.info("PURPOSE || FAILED ||   MEAN DISTANCE   || [    INDEX 0   ,   INDEX 1   ,   INDEX 2    ]");
         for (Purpose purpose : purposes) {
             AtomicIntegerArray counts = distributedTrips.get(purpose);
             AtomicDoubleArray distances = distributedDistances.get(purpose);

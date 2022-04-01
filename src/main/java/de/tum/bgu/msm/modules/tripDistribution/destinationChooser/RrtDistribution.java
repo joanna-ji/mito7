@@ -19,18 +19,16 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
 
     private final static Logger logger = Logger.getLogger(RrtDistribution.class);
 
-    private final IndexedDoubleMatrix2D baseProbabilities;
+    private final Map<Integer, IndexedDoubleMatrix2D> baseProbabilitiesMap;
     private final TravelDistances travelDistances;
 
     private final Collection<MitoHousehold> householdPartition;
     private final Map<Integer, MitoZone> zonesCopy;
 
-    private final int carOwnershipIndex;
 
-    public RrtDistribution(DataSet dataSet, int index, Collection<MitoHousehold> householdPartition) {
+    public RrtDistribution(DataSet dataSet, Collection<MitoHousehold> householdPartition) {
         super(MitoUtil.getRandomObject().nextLong());
-        this.carOwnershipIndex = index;
-        this.baseProbabilities = TripDistribution.utilityMatrices.get(RRT).get(0);
+        this.baseProbabilitiesMap = TripDistribution.utilityMatrices.get(RRT);
         this.zonesCopy = new HashMap<>(dataSet.getZones());
         this.travelDistances = dataSet.getTravelDistancesNMT();
         this.householdPartition = householdPartition;
@@ -38,34 +36,48 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
 
     @Override
     public Void call() {
-        int distributedTripsCounter = 0;
         int failedTripsCounter= 0;
-        double distributedDistanceCounter = 0.;
 
         for (MitoHousehold household : householdPartition) {
             for(MitoPerson person : household.getPersons().values()) {
-                for (MitoTrip trip : person.getTripsForPurpose(RRT)) {
-                    Location origin = findOrigin(person);
-                    trip.setTripOrigin(origin);
-                    if (origin == null) {
-                        logger.debug("No origin found for trip" + trip);
-                        failedTripsCounter++;
-                        continue;
+                if(person.hasTripsForPurpose(RRT)) {
+                    EnumSet<Mode> restrictedModeSet = person.getModeRestriction().getRestrictedModeSet();
+
+                    int index;
+                    if(restrictedModeSet.contains(Mode.walk) && restrictedModeSet.contains(Mode.bicycle)) {
+                        index = 1;
+                    } else if (restrictedModeSet.contains(Mode.walk)) {
+                        index = 0;
+                    } else if (restrictedModeSet.contains(Mode.bicycle)) {
+                        index = 2;
+                    } else {
+                        throw new RuntimeException("Bicycle and walk not in choice set for RRT trips for person " + person.getId());
                     }
-                    MitoZone destination = findDestination(origin.getZoneId());
-                    trip.setTripDestination(destination);
-                    if (destination == null) {
-                        logger.debug("No destination found for trip" + trip);
-                        failedTripsCounter++;
-                        continue;
+
+                    for (MitoTrip trip : person.getTripsForPurpose(RRT)) {
+                        Location origin = findOrigin(person);
+                        trip.setTripOrigin(origin);
+                        if (origin == null) {
+                            logger.debug("No origin found for trip" + trip);
+                            failedTripsCounter++;
+                            continue;
+                        }
+                        MitoZone destination = findDestination(origin.getZoneId(),index);
+                        trip.setTripDestination(destination);
+                        if (destination == null) {
+                            logger.debug("No destination found for trip" + trip);
+                            failedTripsCounter++;
+                            continue;
+                        }
+                        double distance = travelDistances.getTravelDistance(origin.getZoneId(),destination.getZoneId());
+
+                        TripDistribution.distributedTrips.get(RRT).incrementAndGet(index);
+                        TripDistribution.distributedDistances.get(RRT).addAndGet(index, distance);
                     }
-                    distributedTripsCounter++;
-                    distributedDistanceCounter += travelDistances.getTravelDistance(origin.getZoneId(),destination.getZoneId());
                 }
+
             }
         }
-        TripDistribution.distributedTrips.get(RRT).addAndGet(carOwnershipIndex, distributedTripsCounter);
-        TripDistribution.distributedDistances.get(RRT).addAndGet(carOwnershipIndex, distributedDistanceCounter);
         TripDistribution.failedTrips.get(RRT).addAndGet(failedTripsCounter);
         return null;
     }
@@ -88,7 +100,8 @@ public final class RrtDistribution extends RandomizableConcurrentFunction<Void> 
         }
     }
 
-    private MitoZone findDestination(int origin) {
+    private MitoZone findDestination(int origin, int index) {
+        IndexedDoubleMatrix2D baseProbabilities = baseProbabilitiesMap.get(index);
         return zonesCopy.get(baseProbabilities.getIdForInternalColumnIndex(MitoUtil.select(baseProbabilities.viewRow(origin).toNonIndexedArray(), random)));
     }
 
