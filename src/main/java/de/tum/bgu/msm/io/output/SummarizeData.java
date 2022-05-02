@@ -65,7 +65,7 @@ public class SummarizeData {
         LOGGER.info("  Writing person file");
         Path filepp = Resources.instance.getOutputPersonsPath();
         PrintWriter pwp = MitoUtil.openFileForSequentialWriting(filepp.toAbsolutePath().toString(), false);
-        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.driversLicense,p.ownBicycle,p.modeRestriction," +
+        pwp.println("p.ID,hh.id,p.age,p.female,p.occupationStatus,p.jobType,p.driversLicense,p.ownBicycle,p.modeRestriction," +
                 "p.trips,p.trips_HBW,p.trips_HBE,p.trips_HBS,p.trips_HBR,p.trips_HBO,p.trips_RRT,p.trips_NHBW,p.trips_NHBO,p.trips_AIRPORT");
         for(MitoHousehold hh: dataSet.getHouseholds().values()) {
             for (MitoPerson pp : hh.getPersons().values()) {
@@ -78,6 +78,8 @@ public class SummarizeData {
                     pwp.print(pp.getMitoGender().equals(MitoGender.FEMALE) ? 1 : 0);
                     pwp.print(",");
                     pwp.print(pp.getMitoOccupationStatus());
+                    pwp.print(",");
+                    pwp.print(pp.getJobType());
                     pwp.print(",");
                     pwp.print(pp.hasDriversLicense());
                     pwp.print(",");

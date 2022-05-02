@@ -16,6 +16,7 @@ public class MitoPerson implements Id {
     private final MitoGender mitoGender;
     private final MitoOccupationStatus mitoOccupationStatus;
     private final MitoOccupation occupation;
+    private final String jobType;
     private final int age;
     private final boolean driversLicense;
 
@@ -30,14 +31,19 @@ public class MitoPerson implements Id {
     private boolean bicycle;
 
 
-    public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, int age, MitoGender mitoGender, boolean driversLicense) {
+    public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, String jobType, int age, MitoGender mitoGender, boolean driversLicense) {
         this.id = id;
         this.household = hh;
         this.mitoOccupationStatus = mitoOccupationStatus;
         this.occupation = occupation;
+        this.jobType = jobType;
         this.age = age;
         this.mitoGender = mitoGender;
         this.driversLicense = driversLicense;
+    }
+
+    public String getJobType() {
+        return jobType;
     }
 
     public MitoOccupation getOccupation() {

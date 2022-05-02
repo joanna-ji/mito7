@@ -47,7 +47,14 @@ public class TripsByPurposeGeneratorHurdleModel extends RandomizableConcurrentFu
         logger.info("  Generating trips for purpose " + purpose + " (multi-threaded)");
 
         for (MitoPerson person : dataSet.getModelledPersons().values()) {
-            if(purpose.equals(Purpose.HBW) || purpose.equals(Purpose.HBE)) {
+            if (purpose.equals(Purpose.HBW)) {
+//                String jobType = person.getJobType();
+//                if(("Admn".equals(jobType) || "Finc".equals(jobType) || "Serv".equals(jobType)) && random.nextDouble() < 0.8) {
+//                    generateTripsForPerson(person, 0);
+//                } else {
+                    generateTripsForPerson(person, polrEstimateTrips(person));
+//                }
+            } else if (purpose.equals(Purpose.HBE)) {
                 generateTripsForPerson(person, polrEstimateTrips(person));
             } else {
                 generateTripsForPerson(person, hurdleEstimateTrips(person));
