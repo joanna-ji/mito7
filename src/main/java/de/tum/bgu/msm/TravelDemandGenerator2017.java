@@ -222,7 +222,7 @@ public final class TravelDemandGenerator2017 {
 
         if (Resources.instance.getBoolean(Properties.PRINT_MICRO_DATA, true)) {
             SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
-            SummarizeData.writeOutTrips(dataSet, scenarioName);
+            SummarizeData.writeAllTrips(dataSet, scenarioName);
         }
         if (Resources.instance.getBoolean(Properties.CREATE_CHARTS, true)) {
             //DistancePlots.writeDistanceDistributions(dataSet, scenarioName);

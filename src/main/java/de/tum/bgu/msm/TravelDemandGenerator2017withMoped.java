@@ -233,14 +233,16 @@ public final class TravelDemandGenerator2017withMoped {
         modeChoice.run();
 
         // MODE CHOICE CALIBRATION CODE
-        int modeChoiceCalibrationIterations = Resources.instance.getInt(Properties.MC_CALIBRATION_ITERATIONS,0);
-        if(modeChoiceCalibrationIterations > 0) {
-            ModeChoiceCalibrationData modeChoiceCalibrationData = dataSet.getModeChoiceCalibrationData();
-            for (int i = 1 ; i <= modeChoiceCalibrationIterations ; i++) {
-                modeChoiceCalibrationData.updateCalibrationCoefficients(dataSet, i);
-                modeChoice.run();
+        if(Resources.instance.getBoolean(Properties.RUN_CALIBRATION,false)) {
+            int modeChoiceCalibrationIterations = Resources.instance.getInt(Properties.MC_CALIBRATION_ITERATIONS, 0);
+            if (modeChoiceCalibrationIterations > 0) {
+                ModeChoiceCalibrationData modeChoiceCalibrationData = dataSet.getModeChoiceCalibrationData();
+                for (int i = 1; i <= modeChoiceCalibrationIterations; i++) {
+                    modeChoiceCalibrationData.updateCalibrationCoefficients(dataSet, i);
+                    modeChoice.run();
+                }
+                modeChoiceCalibrationData.close();
             }
-            modeChoiceCalibrationData.close();
         }
 
         logger.info("Running time of day choice");
@@ -272,7 +274,7 @@ public final class TravelDemandGenerator2017withMoped {
 
         if (Resources.instance.getBoolean(Properties.PRINT_MICRO_DATA, true)) {
             SummarizeData.writeOutSyntheticPopulationWithTrips(dataSet);
-            SummarizeData.writeOutTrips(dataSet, scenarioName);
+            //SummarizeData.writeAllTrips(dataSet, scenarioName);
         }
         if (Resources.instance.getBoolean(Properties.CREATE_CHARTS, true)) {
             //DistancePlots.writeDistanceDistributions(dataSet, scenarioName);

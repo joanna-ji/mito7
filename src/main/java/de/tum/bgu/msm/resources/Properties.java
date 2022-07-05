@@ -96,4 +96,5 @@ public class Properties {
 
     public static final String BIKE_OWNERSHIP_COEFFICIENTS = "bicycle.ownership.coefficients";
 
+    public static final String RUN_CALIBRATION = "run.calibration";
 }
