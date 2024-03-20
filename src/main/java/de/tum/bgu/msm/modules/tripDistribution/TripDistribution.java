@@ -45,8 +45,8 @@ public final class TripDistribution extends Module {
 
     // Calibration parameters (set all to null unless calibrating)
     final static Purpose calibrationPurpose = null;
-    final static Double calibrationImpedanceParam = null;
-    final static double[] calibrationDistanceParams = null;
+    final static Double calibrationImpedanceParam = null; //whatever impedance
+    final static double[] calibrationDistanceParams = null; //starting parameters
     private final static double[] calibrationReferenceMeans = null;
 
     private final int numberOfThreads = Runtime.getRuntime().availableProcessors();
