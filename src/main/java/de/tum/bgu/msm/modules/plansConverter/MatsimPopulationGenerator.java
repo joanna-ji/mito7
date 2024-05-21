@@ -16,6 +16,7 @@ import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,8 +26,8 @@ public final class MatsimPopulationGenerator extends Module {
 
     private final Set<Mode> modeSet = new HashSet<>();
 
-    public MatsimPopulationGenerator(DataSet dataSet) {
-        super(dataSet);
+    public MatsimPopulationGenerator(DataSet dataSet, List<Purpose> purposes) {
+        super(dataSet, purposes);
         String[] networkModes = Resources.instance.getArray(Properties.MATSIM_NETWORK_MODES, new String[]{"autoDriver"});
         String[] teleportedModes = Resources.instance.getArray(Properties.MATSIM_TELEPORTED_MODES, new String[]{});
         for (String mode : networkModes){
