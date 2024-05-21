@@ -1,9 +1,8 @@
-package de.tum.bgu.msm.run;
+package de.tum.bgu.msm.run.scenarios.socialNetwork;
 
 import ch.sbb.matsim.mobsim.qsim.SBBTransitModule;
 import ch.sbb.matsim.mobsim.qsim.pt.SBBTransitEngineQSimModule;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
-import de.tum.bgu.msm.MitoModel2017;
 import de.tum.bgu.msm.data.DataSet;
 import de.tum.bgu.msm.data.Day;
 import de.tum.bgu.msm.resources.Properties;
@@ -21,14 +20,14 @@ import org.matsim.core.scenario.ScenarioUtils;
 
 import java.util.EnumMap;
 
-public class Mito7WithTransitAssignment {
+public class Mito7WithTransitAssignmentSocialNetwork {
 
-    private static final Logger logger = Logger.getLogger(Mito7WithTransitAssignment.class);
+    private static final Logger logger = Logger.getLogger(Mito7WithTransitAssignmentSocialNetwork.class);
 
     private static boolean runPtAssignment = true;
 
     private static double planScale = 0.05;
-    private static int lastItration = 5;
+    private static int lastItration = 25;
     private static double reroute = 0.2;
     private static boolean useSBB = true;
     private static boolean deterministic = false;
@@ -38,7 +37,7 @@ public class Mito7WithTransitAssignment {
 
     public static void main(String[] args) {
         logger.info("Started the Microsimulation Transport Orchestrator (MITO) based on 2017 models");
-        MitoModel2017 model = MitoModel2017.standAloneModel(args[0], MunichImplementationConfig.get());
+        MitoModel2017SocialNetwork model = MitoModel2017SocialNetwork.standAloneModel(args[0], MunichImplementationConfig.get());
 
         model.run();
         final DataSet dataSet = model.getData();

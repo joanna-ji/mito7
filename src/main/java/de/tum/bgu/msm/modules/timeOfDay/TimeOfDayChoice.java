@@ -49,6 +49,7 @@ public final class TimeOfDayChoice extends Module {
 
             // choose day of week
             trip.setDepartureDay(chooseDepartureDay(trip));
+            trip.setArrivalDay(chooseDepartureDay(trip));
 
             // choose time of day
             if (trip.getTripOrigin() != null && trip.getTripDestination() != null
@@ -57,6 +58,7 @@ public final class TimeOfDayChoice extends Module {
                     trip.setDepartureInMinutes(chooseDepartureTime(trip));
                 } else {
                     int arrivalTimeInMinutes = chooseArrivalTime(trip);
+                    trip.setArrivalInMinutes(arrivalTimeInMinutes);
                     int departureTimeInMinutes = arrivalTimeInMinutes - (int) estimateTravelTimeForDeparture(trip, arrivalTimeInMinutes);
                     if(departureTimeInMinutes < 0) {
                         trip.setDepartureInMinutes(departureTimeInMinutes + 1440);

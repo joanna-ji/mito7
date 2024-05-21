@@ -29,6 +29,7 @@ public class MitoPerson implements Id {
     private boolean transitPass;
     private boolean disable;
     private boolean bicycle;
+    private Map<SocialNetworkType, ArrayList<Integer> > alterLists = new HashMap<>();
 
 
     public MitoPerson(int id, MitoHousehold hh, MitoOccupationStatus mitoOccupationStatus, MitoOccupation occupation, String jobType, int age, MitoGender mitoGender, boolean driversLicense) {
@@ -141,6 +142,13 @@ public class MitoPerson implements Id {
         return disable;
     }
 
+    public Map<SocialNetworkType, ArrayList<Integer>> getAlterLists() {
+        return alterLists;
+    }
+
+    public void setAlterLists(Map<SocialNetworkType, ArrayList<Integer>> alterLists) {
+        this.alterLists = alterLists;
+    }
 
 
     @Override

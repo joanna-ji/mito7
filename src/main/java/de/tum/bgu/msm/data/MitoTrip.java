@@ -3,9 +3,6 @@ package de.tum.bgu.msm.data;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.population.Person;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Holds trip objects for the Microsimulation Transport Orchestrator (MITO)
  *
@@ -28,13 +25,19 @@ public class MitoTrip implements Id {
     private int departureInMinutes;
     private int departureInMinutesReturnTrip = -1;
 
+    private Day arrivalDay;
+    private int arrivalInMinutes;
+
     private int tripOriginMopedZoneId;
     private int tripDestinationMopedZoneId;
     private Coord originMopedZoneCoord;
     private Coord destinationMopedZoneCoord;
     private double mopedTripDistance;
+    private Coord destinationCoord;
+    private Coord originCoord;
 
     private Person matsimPerson;
+    private int coordinatedTripId = 0;
 
     public MitoTrip(int tripId, Purpose tripPurpose) {
         this.tripId = tripId;
@@ -104,6 +107,18 @@ public class MitoTrip implements Id {
 
     public int getDepartureInMinutesReturnTrip() {
         return departureInMinutesReturnTrip;
+    }
+
+    public void setArrivalDay(Day arrivalDay) {this.arrivalDay = arrivalDay;}
+
+    public void setArrivalInMinutes(int arrivalInMinutes) {
+        this.arrivalInMinutes = arrivalInMinutes;
+    }
+
+    public Day getArrivalDay() {return arrivalDay;}
+
+    public int getArrivalInMinutes() {
+        return arrivalInMinutes;
     }
 
     public int getTripId() {
@@ -182,5 +197,19 @@ public class MitoTrip implements Id {
 
     public void setDestinationMopedZoneCoord(Coord destinationMopedZoneCoord) {
         this.destinationMopedZoneCoord = destinationMopedZoneCoord;
+    }
+
+    public int getCoordinatedTripId() {
+        return coordinatedTripId;
+    }
+
+    public void setDestinationCoord(Coord destinationCoord) {this.destinationCoord = destinationCoord;}
+
+    public Coord getDestinationCoord() {
+        return destinationCoord;
+    }
+
+    public void setCoordinatedTripId(int coordinatedTripId) {
+        this.coordinatedTripId = coordinatedTripId;
     }
 }
